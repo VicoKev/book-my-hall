@@ -168,7 +168,7 @@ public class Reservation {
     /**
      * Annule la réservation
      */
-    public void annulerReservation() {
+    public void annulerR() {
         if (estAnnulable()) {
             this.statut = StatutReservation.CANCELLED;
         } else {
@@ -179,7 +179,7 @@ public class Reservation {
     /**
      * Confirme la réservation
      */
-    public void confirmerReservation() {
+    public void confirmerR() {
         if (statut == StatutReservation.PENDING) {
             this.statut = StatutReservation.CONFIRMED;
         } else {
