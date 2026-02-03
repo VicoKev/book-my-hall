@@ -147,4 +147,14 @@ public class Reservation {
             }
         }
     }
+
+    /**
+     * Calcule la durée de la réservation en heures
+     */
+    public long getDureeEnHeures() {
+        if (heureDebut != null && heureFin != null) {
+            return java.time.Duration.between(heureDebut, heureFin).toHours();
+        }
+        return 0;
+    }
 }
