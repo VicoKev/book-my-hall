@@ -94,4 +94,11 @@ public class Utilisateur {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Reservation> reservations = new ArrayList<>();
+
+    /**
+     * Retourne le nom complet de l'utilisateur
+     */
+    public String getNomComplet() {
+        return prenom + " " + nom;
+    }
 }
