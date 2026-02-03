@@ -164,4 +164,15 @@ public class Reservation {
     public boolean estAnnulable() {
         return statut == StatutReservation.PENDING || statut == StatutReservation.CONFIRMED;
     }
+
+    /**
+     * Annule la réservation
+     */
+    public void annulerReservation() {
+        if (estAnnulable()) {
+            this.statut = StatutReservation.CANCELLED;
+        } else {
+            throw new IllegalStateException("Cette réservation ne peut pas être annulée");
+        }
+    }
 }
