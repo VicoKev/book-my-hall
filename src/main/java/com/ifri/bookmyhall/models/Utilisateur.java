@@ -101,4 +101,11 @@ public class Utilisateur {
     public String getNomComplet() {
         return prenom + " " + nom;
     }
+
+    /**
+     * Vérifie si l'utilisateur a le rôle ADMIN
+     */
+    public boolean isAdmin() {
+        return Role.ADMIN.equals(this.role);
+    }
 }
