@@ -81,6 +81,12 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- Spring Security JSP Tag Library -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-taglibs</artifactId>
+        </dependency>
+
         <!--  Tomcat Jasper  -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
