@@ -17,6 +17,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Future;
@@ -130,6 +132,19 @@ public class Reservation {
 
         public String getLibelle() {
             return libelle;
+        }
+    }
+
+    /**
+     * Vérifie que l'heure de fin est après l'heure de début
+     */
+    @PrePersist
+    @PreUpdate
+    private void validateHoraires() {
+        if (heureDebut != null && heureFin != null) {
+            if (heureFin.isBefore(heureDebut) || heureFin.equals(heureDebut)) {
+                throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
+            }
         }
     }
 }
