@@ -98,4 +98,11 @@ public class Salle {
     public void setDisponibilite(boolean status) {
         this.disponible = status;
     }
+
+    /**
+     * Vérifie si la salle est disponible pour réservation
+     */
+    public boolean isReservable() {
+        return this.disponible != null && this.disponible;
+    }
 }
