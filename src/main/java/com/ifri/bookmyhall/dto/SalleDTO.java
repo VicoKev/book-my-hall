@@ -48,6 +48,8 @@ public class SalleDTO {
 
     private Boolean disponible;
 
+    private Long nombreReservations;
+
     /**
      * Vérifie si la salle est réservable
      */
