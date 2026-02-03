@@ -92,5 +92,10 @@ public class Salle {
     @EqualsAndHashCode.Exclude
     private List<Reservation> reservations = new ArrayList<>();
 
-    
+    /**
+     * Active ou désactive la disponibilité de la salle
+     */
+    public void setDisponibilite(boolean status) {
+        this.disponible = status;
+    }
 }
