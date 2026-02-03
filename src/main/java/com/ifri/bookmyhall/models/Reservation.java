@@ -157,4 +157,11 @@ public class Reservation {
         }
         return 0;
     }
+
+    /**
+     * Vérifie si la réservation peut être annulée
+     */
+    public boolean estAnnulable() {
+        return statut == StatutReservation.PENDING || statut == StatutReservation.CONFIRMED;
+    }
 }
