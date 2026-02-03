@@ -175,4 +175,15 @@ public class Reservation {
             throw new IllegalStateException("Cette réservation ne peut pas être annulée");
         }
     }
+
+    /**
+     * Confirme la réservation
+     */
+    public void confirmerReservation() {
+        if (statut == StatutReservation.PENDING) {
+            this.statut = StatutReservation.CONFIRMED;
+        } else {
+            throw new IllegalStateException("Seules les réservations en attente peuvent être confirmées");
+        }
+    }
 }
