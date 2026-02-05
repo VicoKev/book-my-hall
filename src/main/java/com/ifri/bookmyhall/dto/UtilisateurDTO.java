@@ -74,4 +74,11 @@ public class UtilisateurDTO {
         }
         return "";
     }
+
+    /**
+     * Vérifie si l'utilisateur est administrateur
+     */
+    public boolean isAdmin() {
+        return role != null && role.equals(Role.ADMIN);
+    }
 }
