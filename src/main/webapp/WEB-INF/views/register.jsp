@@ -74,7 +74,7 @@
                         <label for="password" class="form-label">Mot de passe <span class="required-asterisk">*</span></label>
                         <input type="password" class="form-control" id="password" 
                                name="password" required minlength="6" 
-                               placeholder="Mot de passe">
+                               placeholder="Votre mot de passe">
                         <small class="form-text text-muted">6 caractères minimum</small>
                     </div>
                     
