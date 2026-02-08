@@ -62,8 +62,8 @@ public class AdminController {
             }
             model.addAttribute("dernieresReservations", dernieresReservations);
 
-            log.debug("Statistiques chargées: {} users, {} salles, {} reservations", 
-                     totalUtilisateurs, totalSalles, totalReservations);
+            log.debug("Statistiques chargées: {} users, {} salles, {} reservations",
+                    totalUtilisateurs, totalSalles, totalReservations);
 
         } catch (Exception e) {
             log.error("Erreur lors du chargement du dashboard admin", e);
@@ -80,7 +80,9 @@ public class AdminController {
     public String showAddUserForm(Model model) {
         log.info("Affichage du formulaire d'ajout d'utilisateur");
 
-        model.addAttribute("userDTO", new UtilisateurDTO());
+        UtilisateurDTO utilisateurDTO = new UtilisateurDTO();
+        utilisateurDTO.setActif(true);
+        model.addAttribute("utilisateurDTO", utilisateurDTO);
         model.addAttribute("roles", Arrays.asList(Role.values()));
         return "admin/user-form";
     }
@@ -94,7 +96,7 @@ public class AdminController {
 
         try {
             UtilisateurDTO user = utilisateurService.getUtilisateurById(id);
-            model.addAttribute("userDTO", user);
+            model.addAttribute("utilisateurDTO", user);
             model.addAttribute("roles", Arrays.asList(Role.values()));
         } catch (Exception e) {
             log.error("Erreur lors du chargement de l'utilisateur", e);
@@ -107,16 +109,21 @@ public class AdminController {
     /**
      * Crée un nouvel utilisateur
      */
-    @PostMapping("/users/create")
-    public String createUser(@Valid @ModelAttribute("userDTO") UtilisateurDTO userDTO,
-                            BindingResult result,
-                            Model model,
-                            RedirectAttributes redirectAttributes) {
-        log.info("Création d'un nouvel utilisateur: {}", userDTO.getUsername());
+    @PostMapping("/users/add")
+    public String createUser(@Valid @ModelAttribute("utilisateurDTO") UtilisateurDTO utilisateurDTO,
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        log.info("Création d'un nouvel utilisateur: {}", utilisateurDTO.getUsername());
 
-        if (userDTO.getPassword() == null || userDTO.getConfirmPassword() == null ||
-            !userDTO.getPassword().equals(userDTO.getConfirmPassword())) {
-            result.rejectValue("confirmPassword", "error.userDTO", "Les mots de passe ne correspondent pas");
+        if (utilisateurDTO.getPassword() == null || utilisateurDTO.getPassword().length() < 6) {
+            result.rejectValue("password", "error.utilisateurDTO",
+                    "Le mot de passe doit contenir au moins 6 caractères");
+        }
+
+        if (utilisateurDTO.getPassword() == null || utilisateurDTO.getConfirmPassword() == null ||
+                !utilisateurDTO.getPassword().equals(utilisateurDTO.getConfirmPassword())) {
+            result.rejectValue("confirmPassword", "error.utilisateurDTO", "Les mots de passe ne correspondent pas");
         }
 
         if (result.hasErrors()) {
@@ -125,9 +132,9 @@ public class AdminController {
         }
 
         try {
-            utilisateurService.createUtilisateur(userDTO);
+            utilisateurService.createUtilisateur(utilisateurDTO);
             redirectAttributes.addFlashAttribute("successMessage",
-                "Utilisateur créé avec succès");
+                    "Utilisateur créé avec succès");
         } catch (IllegalArgumentException e) {
             log.warn("Erreur de validation lors de la création de l'utilisateur: {}", e.getMessage());
             model.addAttribute("errorMessage", e.getMessage());
@@ -148,15 +155,15 @@ public class AdminController {
      */
     @PostMapping("/users/{id}/update")
     public String updateUser(@PathVariable Long id,
-                            @Valid @ModelAttribute("userDTO") UtilisateurDTO userDTO,
-                            BindingResult result,
-                            Model model,
-                            RedirectAttributes redirectAttributes) {
+            @Valid @ModelAttribute("utilisateurDTO") UtilisateurDTO utilisateurDTO,
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         log.info("Mise à jour de l'utilisateur ID: {}", id);
 
-        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-            if (!userDTO.getPassword().equals(userDTO.getConfirmPassword())) {
-                result.rejectValue("confirmPassword", "error.userDTO", "Les mots de passe ne correspondent pas");
+        if (utilisateurDTO.getPassword() != null && !utilisateurDTO.getPassword().isEmpty()) {
+            if (!utilisateurDTO.getPassword().equals(utilisateurDTO.getConfirmPassword())) {
+                result.rejectValue("confirmPassword", "error.utilisateurDTO", "Les mots de passe ne correspondent pas");
             }
         }
 
@@ -166,9 +173,9 @@ public class AdminController {
         }
 
         try {
-            utilisateurService.updateUtilisateur(id, userDTO);
+            utilisateurService.updateUtilisateur(id, utilisateurDTO);
             redirectAttributes.addFlashAttribute("successMessage",
-                "Utilisateur mis à jour avec succès");
+                    "Utilisateur mis à jour avec succès");
         } catch (IllegalArgumentException e) {
             log.warn("Erreur de validation lors de la mise à jour de l'utilisateur: {}", e.getMessage());
             model.addAttribute("errorMessage", e.getMessage());
@@ -194,10 +201,10 @@ public class AdminController {
         try {
             List<UtilisateurDTO> users = utilisateurService.getAllUtilisateurs();
             model.addAttribute("users", users);
-            
+
             long admins = utilisateurService.countByRole(Role.ADMIN);
             long normalUsers = utilisateurService.countByRole(Role.USER);
-            
+
             model.addAttribute("totalAdmins", admins);
             model.addAttribute("totalUsers", normalUsers);
 
@@ -214,14 +221,14 @@ public class AdminController {
      */
     @PostMapping("/users/{id}/change-role")
     public String changeUserRole(@PathVariable Long id,
-                                 @RequestParam Role newRole,
-                                 RedirectAttributes redirectAttributes) {
+            @RequestParam Role newRole,
+            RedirectAttributes redirectAttributes) {
         log.info("Changement de rôle pour l'utilisateur ID: {} -> {}", id, newRole);
 
         try {
             utilisateurService.changeRole(id, newRole);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Rôle modifié avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Rôle modifié avec succès");
         } catch (Exception e) {
             log.error("Erreur lors du changement de rôle", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -235,14 +242,14 @@ public class AdminController {
      */
     @PostMapping("/users/{id}/toggle-active")
     public String toggleUserActive(@PathVariable Long id,
-                                   @RequestParam Boolean actif,
-                                   RedirectAttributes redirectAttributes) {
+            @RequestParam Boolean actif,
+            RedirectAttributes redirectAttributes) {
         log.info("Modification du statut actif pour l'utilisateur ID: {} -> {}", id, actif);
 
         try {
             utilisateurService.toggleActif(id, actif);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Statut modifié avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Statut modifié avec succès");
         } catch (Exception e) {
             log.error("Erreur lors de la modification du statut", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -260,8 +267,8 @@ public class AdminController {
 
         try {
             utilisateurService.deleteUtilisateur(id);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Utilisateur supprimé avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Utilisateur supprimé avec succès");
         } catch (Exception e) {
             log.error("Erreur lors de la suppression de l'utilisateur", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -319,9 +326,9 @@ public class AdminController {
      */
     @PostMapping("/salles/create")
     public String createSalle(@Valid @ModelAttribute("salleDTO") SalleDTO salleDTO,
-                             BindingResult result,
-                             Model model,
-                             RedirectAttributes redirectAttributes) {
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         log.info("Création d'une nouvelle salle: {}", salleDTO.getNom());
 
         if (result.hasErrors()) {
@@ -331,8 +338,8 @@ public class AdminController {
 
         try {
             salleService.createSalle(salleDTO);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Salle créée avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Salle créée avec succès");
             return "redirect:/admin/salles";
         } catch (Exception e) {
             log.error("Erreur lors de la création de la salle", e);
@@ -347,10 +354,10 @@ public class AdminController {
      */
     @PostMapping("/salles/{id}/update")
     public String updateSalle(@PathVariable Long id,
-                             @Valid @ModelAttribute("salleDTO") SalleDTO salleDTO,
-                             BindingResult result,
-                             Model model,
-                             RedirectAttributes redirectAttributes) {
+            @Valid @ModelAttribute("salleDTO") SalleDTO salleDTO,
+            BindingResult result,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         log.info("Mise à jour de la salle ID: {}", id);
 
         if (result.hasErrors()) {
@@ -360,8 +367,8 @@ public class AdminController {
 
         try {
             salleService.updateSalle(id, salleDTO);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Salle mise à jour avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Salle mise à jour avec succès");
             return "redirect:/admin/salles";
         } catch (Exception e) {
             log.error("Erreur lors de la mise à jour de la salle", e);
@@ -380,15 +387,15 @@ public class AdminController {
 
         try {
             salleService.deleteSalle(id);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Salle supprimée avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Salle supprimée avec succès");
         } catch (IllegalStateException e) {
             log.error("Impossible de supprimer la salle: {}", e.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         } catch (Exception e) {
             log.error("Erreur lors de la suppression de la salle", e);
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "Erreur lors de la suppression");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Erreur lors de la suppression");
         }
 
         return "redirect:/admin/salles";
@@ -399,14 +406,14 @@ public class AdminController {
      */
     @PostMapping("/salles/{id}/toggle-disponibilite")
     public String toggleSalleDisponibilite(@PathVariable Long id,
-                                          @RequestParam Boolean disponible,
-                                          RedirectAttributes redirectAttributes) {
+            @RequestParam Boolean disponible,
+            RedirectAttributes redirectAttributes) {
         log.info("Modification de la disponibilité de la salle ID: {} -> {}", id, disponible);
 
         try {
             salleService.toggleDisponibilite(id, disponible);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Disponibilité modifiée avec succès");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Disponibilité modifiée avec succès");
         } catch (Exception e) {
             log.error("Erreur lors de la modification de la disponibilité", e);
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -420,7 +427,7 @@ public class AdminController {
      */
     @GetMapping("/reservations")
     public String listReservations(@RequestParam(required = false) String statut,
-                                   Model model) {
+            Model model) {
         log.info("Accès à la gestion des réservations - Filtre statut: {}", statut);
 
         try {
