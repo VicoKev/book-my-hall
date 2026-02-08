@@ -49,7 +49,13 @@ public class AuthController {
 
         try {
             java.net.URI uri = new java.net.URI(referer);
-            String path = uri.getPath().replaceFirst("^/[^/]+", "");
+            String path = uri.getPath();
+            String contextPath = request.getContextPath();
+
+            if (contextPath != null && !contextPath.isEmpty() && !contextPath.equals("/")
+                    && path.startsWith(contextPath)) {
+                path = path.substring(contextPath.length());
+            }
 
             if (path.equals("/") || path.equals("/login") || path.equals("/register")) {
                 return "redirect:/dashboard";
