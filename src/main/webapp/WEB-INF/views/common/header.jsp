@@ -18,32 +18,43 @@
             --primary-color: #6366f1;
             --secondary-color: #8b5cf6;
         }
-        
+
+        html, body {
+            height: 100%;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        
+
+        .main-content {
+            flex: 1 0 auto;
+        }
+
         .navbar-brand {
             font-weight: 700;
             color: var(--primary-color) !important;
             font-size: 1.5rem;
         }
-        
+
         .navbar {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .btn-primary {
             background-color: var(--primary-color);
             border-color: var(--primary-color);
         }
-        
+
         .btn-primary:hover {
             background-color: var(--secondary-color);
             border-color: var(--secondary-color);
         }
-        
+
         .card {
             border: none;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -132,4 +143,5 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container">
+    <div class="main-content">
+        <div class="container">
