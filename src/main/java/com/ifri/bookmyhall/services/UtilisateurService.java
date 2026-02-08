@@ -142,6 +142,8 @@ public class UtilisateurService {
         utilisateur.setEmail(UtilisateurDTO.getEmail());
         utilisateur.setUsername(UtilisateurDTO.getUsername());
         utilisateur.setTelephone(UtilisateurDTO.getTelephone());
+        utilisateur.setRole(UtilisateurDTO.getRole());
+        utilisateur.setActif(UtilisateurDTO.getActif());
 
         if (UtilisateurDTO.getPassword() != null && !UtilisateurDTO.getPassword().isEmpty()) {
             utilisateur.setPassword(passwordEncoder.encode(UtilisateurDTO.getPassword()));
