@@ -59,7 +59,7 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Email <span class="required-asterisk">*</span></label>
                         <input type="email" class="form-control" id="email" 
-                               name="email" required placeholder="exemple@email.com">
+                               name="email" required placeholder="exemple@bookmyhall.com">
                     </div>
                     
                     <div class="mb-3">
@@ -74,7 +74,8 @@
                         <label for="password" class="form-label">Mot de passe <span class="required-asterisk">*</span></label>
                         <input type="password" class="form-control" id="password" 
                                name="password" required minlength="6" 
-                               placeholder="Minimum 6 caractères">
+                               placeholder="Mot de passe">
+                        <small class="form-text text-muted">6 caractères minimum</small>
                     </div>
                     
                     <div class="mb-3">
