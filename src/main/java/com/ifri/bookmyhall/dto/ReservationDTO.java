@@ -26,10 +26,17 @@ public class ReservationDTO {
 
     private Long id;
 
-    @NotNull(message = "La date de réservation est obligatoire")
-    @Future(message = "La date de réservation doit être future")
+    @NotNull(message = "La date de début est obligatoire")
+    @Future(message = "La date de début doit être future")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private LocalDate dateReservation;
+    private LocalDate dateDebut;
+
+    /**
+     * Date de fin de la réservation (optionnel pour réservations multi-jours)
+     * Si null, la réservation est pour un seul jour
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDate dateFin;
 
     @NotNull(message = "L'heure de début est obligatoire")
     @DateTimeFormat(pattern = "HH:mm")
@@ -109,5 +116,33 @@ public class ReservationDTO {
             return java.time.Duration.between(heureDebut, heureFin).toHours();
         }
         return 0;
+    }
+
+    /**
+     * Vérifie que la plage de dates est valide
+     * (dateFin >= dateDebut ou dateFin est null)
+     */
+    public boolean hasValidDateRange() {
+        if (dateFin == null) {
+            return true; // Réservation d'un seul jour
+        }
+        if (dateDebut == null) {
+            return false;
+        }
+        return !dateFin.isBefore(dateDebut);
+    }
+
+    /**
+     * Calcule le nombre de jours de la réservation
+     * Si dateFin est null, retourne 1 (réservation d'un seul jour)
+     */
+    public long getNombreDeJours() {
+        if (dateFin == null) {
+            return 1;
+        }
+        if (dateDebut == null) {
+            return 0;
+        }
+        return java.time.temporal.ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
     }
 }
