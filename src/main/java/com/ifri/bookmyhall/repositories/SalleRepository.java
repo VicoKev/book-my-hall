@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,9 +27,9 @@ public interface SalleRepository extends JpaRepository<Salle, Long> {
     boolean existsByNom(String nom);
 
     /**
-     * Trouve toutes les salles disponibles
+     * Trouve toutes les salles disponibles avec pagination
      */
-    List<Salle> findByDisponible(Boolean disponible);
+    Page<Salle> findByDisponible(Boolean disponible, Pageable pageable);
 
     /**
      * Trouve les salles par localisation
@@ -48,20 +50,20 @@ public interface SalleRepository extends JpaRepository<Salle, Long> {
     List<Salle> findByPrixBetween(@Param("prixMin") BigDecimal prixMin, @Param("prixMax") BigDecimal prixMax);
 
     /**
-     * Recherche multicritère de salles
+     * Recherche multicritère de salles avec pagination
      */
     @Query("SELECT s FROM Salle s WHERE " +
-           "(:localisation IS NULL OR LOWER(s.localisation) LIKE LOWER(CONCAT('%', :localisation, '%'))) AND " +
-           "(:capaciteMin IS NULL OR s.capacite >= :capaciteMin) AND " +
-           "(:prixMax IS NULL OR s.prixParJour <= :prixMax) AND " +
-           "s.disponible = :disponible " +
-           "ORDER BY s.prixParJour ASC")
-    List<Salle> searchSalles(
-        @Param("localisation") String localisation,
-        @Param("capaciteMin") Integer capaciteMin,
-        @Param("prixMax") BigDecimal prixMax,
-        @Param("disponible") Boolean disponible
-    );
+            "(:localisation IS NULL OR LOWER(s.localisation) LIKE LOWER(CONCAT('%', :localisation, '%'))) AND " +
+            "(:capaciteMin IS NULL OR s.capacite >= :capaciteMin) AND " +
+            "(:prixMax IS NULL OR s.prixParJour <= :prixMax) AND " +
+            "s.disponible = :disponible " +
+            "ORDER BY s.prixParJour ASC")
+    Page<Salle> searchSalles(
+            @Param("localisation") String localisation,
+            @Param("capaciteMin") Integer capaciteMin,
+            @Param("prixMax") BigDecimal prixMax,
+            @Param("disponible") Boolean disponible,
+            Pageable pageable);
 
     /**
      * Compte les salles disponibles
@@ -73,7 +75,7 @@ public interface SalleRepository extends JpaRepository<Salle, Long> {
      * Trouve les salle avec le plus de réservations)
      */
     @Query("SELECT s FROM Salle s LEFT JOIN s.reservations r " +
-           "GROUP BY s.id ORDER BY COUNT(r) DESC")
+            "GROUP BY s.id ORDER BY COUNT(r) DESC")
     List<Salle> findSallesPopulaires();
 
     /**
