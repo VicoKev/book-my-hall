@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** DTO pour le transfert des données des utilisateurs. */
 public class UtilisateurDTO {
 
     private Long id;
@@ -35,48 +36,27 @@ public class UtilisateurDTO {
     @Size(min = 3, max = 30, message = "Le nom d'utilisateur doit contenir entre 3 et 30 caractères")
     private String username;
 
-    /**
-     * Mot de passe
-     */
     private String password;
-
-    /**
-     * Confirmation du mot de passe
-     */
     private String confirmPassword;
 
     @Pattern(regexp = "^\\+[0-9]{10,15}$", message = "Numéro de téléphone invalide")
     private String telephone;
 
     private Role role;
-
     private Boolean actif;
-
     private String nomComplet;
 
-    /**
-     * Vérifie si les mots de passe correspondent
-     */
+    /** Vérifie si le mot de passe et sa confirmation correspondent. */
     public boolean passwordsMatch() {
-        if (password == null || confirmPassword == null) {
-            return false;
-        }
-        return password.equals(confirmPassword);
+        return password != null && password.equals(confirmPassword);
     }
 
-    /**
-     * Génère le nom complet de l'utilisateur
-     */
+    /** Génère le nom complet de l'utilisateur. */
     public String generateNomComplet() {
-        if (prenom != null && nom != null) {
-            return prenom + " " + nom;
-        }
-        return "";
+        return (prenom != null && nom != null) ? prenom + " " + nom : "";
     }
 
-    /**
-     * Vérifie si l'utilisateur est administrateur
-     */
+    /** Vérifie si l'utilisateur possède le rôle ADMIN. */
     public boolean isAdmin() {
         return role != null && role.equals(Role.ADMIN);
     }

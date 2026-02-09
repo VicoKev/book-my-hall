@@ -38,6 +38,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** Entité représentant une réservation de salle. */
 public class Reservation {
 
     @Id
@@ -49,10 +50,6 @@ public class Reservation {
     @Column(nullable = false)
     private LocalDate dateDebut;
 
-    /**
-     * Date de fin de la réservation (pour réservations multi-jours)
-     * Si null, la réservation est pour un seul jour (dateDebut uniquement)
-     */
     @Column(nullable = true)
     private LocalDate dateFin;
 
@@ -80,30 +77,17 @@ public class Reservation {
     @Column(precision = 10, scale = 2)
     private BigDecimal montantTotal;
 
-    /**
-     * Statut de la réservation
-     * PENDING : en attente de confirmation
-     * CONFIRMED : confirmée
-     * CANCELLED : annulée
-     * COMPLETED : terminée
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private StatutReservation statut = StatutReservation.PENDING;
 
-    /**
-     * Utilisateur ayant effectué la réservation
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "utilisateur_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Utilisateur utilisateur;
 
-    /**
-     * Salle réservée
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "salle_id", nullable = false)
     @ToString.Exclude
@@ -118,9 +102,7 @@ public class Reservation {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    /**
-     * Énumération des statuts possibles d'une réservation
-     */
+    /** Énumération des statuts possibles d'une réservation. */
     public enum StatutReservation {
         PENDING("En attente"),
         CONFIRMED("Confirmée"),
@@ -138,74 +120,45 @@ public class Reservation {
         }
     }
 
-    /**
-     * Vérifie que l'heure de fin est après l'heure de début
-     * et que la date de fin est après ou égale à la date de début
-     */
+    /** Valide la cohérence temporelle de la réservation. */
     @PrePersist
     @PreUpdate
     private void validateHoraires() {
-        if (heureDebut != null && heureFin != null) {
-            if (heureFin.isBefore(heureDebut) || heureFin.equals(heureDebut)) {
-                throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
-            }
+        if (heureDebut != null && heureFin != null && (heureFin.isBefore(heureDebut) || heureFin.equals(heureDebut))) {
+            throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
         }
-
-        // Validation de la plage de dates
-        if (dateFin != null && dateDebut != null) {
-            if (dateFin.isBefore(dateDebut)) {
-                throw new IllegalArgumentException("La date de fin doit être après ou égale à la date de début");
-            }
+        if (dateFin != null && dateDebut != null && dateFin.isBefore(dateDebut)) {
+            throw new IllegalArgumentException("La date de fin doit être après ou égale à la date de début");
         }
     }
 
-    /**
-     * Calcule la durée de la réservation en heures
-     */
+    /** Calcule la durée en heures (pour une même journée). */
     public long getDureeEnHeures() {
-        if (heureDebut != null && heureFin != null) {
-            return java.time.Duration.between(heureDebut, heureFin).toHours();
-        }
-        return 0;
+        return (heureDebut != null && heureFin != null) ? java.time.Duration.between(heureDebut, heureFin).toHours()
+                : 0;
     }
 
-    /**
-     * Calcule le nombre de jours de la réservation
-     * Si dateFin est null, retourne 1 (réservation d'un seul jour)
-     */
+    /** Calcule le nombre total de jours réservés. */
     public long getNombreDeJours() {
-        if (dateFin == null) {
-            return 1; // Compatibilité avec les anciennes réservations
-        }
-        return java.time.temporal.ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
+        return (dateFin == null) ? 1 : java.time.temporal.ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
     }
 
-    /**
-     * Vérifie si la réservation peut être annulée
-     */
+    /** Vérifie si la réservation peut être annulée. */
     public boolean estAnnulable() {
         return statut == StatutReservation.PENDING || statut == StatutReservation.CONFIRMED;
     }
 
-    /**
-     * Annule la réservation
-     */
+    /** Annule la réservation. */
     public void annulerR() {
-        if (estAnnulable()) {
-            this.statut = StatutReservation.CANCELLED;
-        } else {
-            throw new IllegalStateException("Cette réservation ne peut pas être annulée");
-        }
+        if (!estAnnulable())
+            throw new IllegalStateException("Impossible d'annuler");
+        this.statut = StatutReservation.CANCELLED;
     }
 
-    /**
-     * Confirme la réservation
-     */
+    /** Confirme la réservation. */
     public void confirmerR() {
-        if (statut == StatutReservation.PENDING) {
-            this.statut = StatutReservation.CONFIRMED;
-        } else {
-            throw new IllegalStateException("Seules les réservations en attente peuvent être confirmées");
-        }
+        if (statut != StatutReservation.PENDING)
+            throw new IllegalStateException("Doit être en attente");
+        this.statut = StatutReservation.CONFIRMED;
     }
 }

@@ -20,11 +20,13 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/images")
 @Slf4j
+/** Controller pour le service d'images des salles. */
 public class ImageController {
 
     @Value("${app.upload-dir}")
     private String uploadDir;
 
+    /** Récupère et sert une image de salle à partir du disque. */
     @GetMapping("/salles/{filename:.+}")
     public ResponseEntity<Resource> getSalleImage(@PathVariable String filename) {
         try {
@@ -33,19 +35,18 @@ public class ImageController {
 
             if (resource.exists() || resource.isReadable()) {
                 String contentType = Files.probeContentType(file);
-                if (contentType == null) {
+                if (contentType == null)
                     contentType = "application/octet-stream";
-                }
 
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
                         .body(resource);
             } else {
-                log.warn("Impossible de lire le fichier: {}", filename);
+                log.warn("Fichier non trouvé : {}", filename);
                 return ResponseEntity.notFound().build();
             }
         } catch (IOException e) {
-            log.error("Erreur lors de la lecture du fichier: {}", filename, e);
+            log.error("Erreur lecture fichier : {}", filename, e);
             return ResponseEntity.internalServerError().build();
         }
     }

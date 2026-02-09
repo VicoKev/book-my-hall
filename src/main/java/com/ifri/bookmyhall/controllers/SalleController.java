@@ -21,14 +21,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/salles")
 @RequiredArgsConstructor
 @Slf4j
+/** Controller pour la gestion des salles côté utilisateur. */
 public class SalleController {
 
     private final SalleService salleService;
 
-    /**
-     * Affiche la liste de toutes les salles disponibles
-     * Avec possibilité de recherche et filtrage
-     */
+    /** Affiche la liste des salles avec filtrage et pagination. */
     @GetMapping
     public String listSalles(
             @RequestParam(required = false) String localisation,
@@ -38,9 +36,6 @@ public class SalleController {
             @RequestParam(defaultValue = "9") int size,
             Model model) {
 
-        log.info("Affichage de la liste des salles - Filtres: localisation={}, capaciteMin={}, prixMax={}, Page: {}",
-                localisation, capaciteMin, prixMax, page);
-
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<SalleDTO> sallesPage;
@@ -48,58 +43,42 @@ public class SalleController {
             if (localisation != null || capaciteMin != null || prixMax != null) {
                 sallesPage = salleService.searchSalles(localisation, capaciteMin, prixMax, pageable);
                 model.addAttribute("hasFilters", true);
-                log.debug("{} salles trouvées avec les filtres", sallesPage.getTotalElements());
             } else {
                 sallesPage = salleService.getSallesDisponibles(pageable);
                 model.addAttribute("hasFilters", false);
-                log.debug("{} salles disponibles", sallesPage.getTotalElements());
             }
 
             model.addAttribute("salles", sallesPage.getContent());
             model.addAttribute("sallesPage", sallesPage);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", sallesPage.getTotalPages());
-
             model.addAttribute("localisation", localisation);
             model.addAttribute("capaciteMin", capaciteMin);
             model.addAttribute("prixMax", prixMax);
 
         } catch (Exception e) {
-            log.error("Erreur lors du chargement des salles", e);
-            model.addAttribute("errorMessage", "Erreur lors du chargement des salles");
+            log.error("Erreur chargement salles", e);
+            model.addAttribute("errorMessage", "Erreur lors du chargement");
         }
-
         return "salles/list";
     }
 
-    /**
-     * Affiche les détails d'une salle spécifique
-     */
+    /** Affiche les détails d'une salle spécifique. */
     @GetMapping("/{id}")
     public String detailsSalle(@PathVariable Long id, Model model) {
-        log.info("Affichage des détails de la salle ID: {}", id);
-
         try {
-            SalleDTO salle = salleService.getSalleById(id);
-            model.addAttribute("salle", salle);
-
-            log.debug("Salle trouvée: {}", salle.getNom());
-
+            model.addAttribute("salle", salleService.getSalleById(id));
         } catch (Exception e) {
-            log.error("Erreur lors du chargement de la salle ID: {}", id, e);
+            log.error("Erreur chargement salle {}", id, e);
             model.addAttribute("errorMessage", "Salle non trouvée");
             return "redirect:/salles";
         }
-
         return "salles/details";
     }
 
-    /**
-     * Redirige vers le formulaire de réservation pour une salle
-     */
+    /** Redirige vers le formulaire de réservation pour une salle. */
     @GetMapping("/{id}/reserver")
     public String reserverSalle(@PathVariable Long id) {
-        log.info("Redirection vers réservation pour la salle ID: {}", id);
         return "redirect:/reservations/new?salleId=" + id;
     }
 }

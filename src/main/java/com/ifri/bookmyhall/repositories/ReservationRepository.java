@@ -17,55 +17,39 @@ import com.ifri.bookmyhall.models.Salle;
 import com.ifri.bookmyhall.models.Utilisateur;
 
 @Repository
+/** Repository pour l'accès aux données des réservations. */
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-       /**
-        * Trouve toutes les réservations d'un utilisateur
-        */
+       /** Récupère toutes les réservations d'un utilisateur. */
        List<Reservation> findByUtilisateur(Utilisateur utilisateur);
 
-       /**
-        * Trouve toutes les réservations d'une salle
-        */
+       /** Récupère toutes les réservations pour une salle. */
        List<Reservation> findBySalle(Salle salle);
 
-       /**
-        * Trouve les réservations par statut avec pagination
-        */
+       /** Récupère les réservations par statut avec pagination. */
        Page<Reservation> findByStatut(StatutReservation statut, Pageable pageable);
 
-       /**
-        * Trouve les réservations d'un utilisateur triées par date décroissante avec
-        * pagination
-        */
+       /** Liste les réservations d'un utilisateur triées par date décroissante. */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "ORDER BY r.dateDebut DESC, r.heureDebut DESC")
        Page<Reservation> findByUtilisateurIdOrderByDateDesc(@Param("utilisateurId") Long utilisateurId,
                      Pageable pageable);
 
-       /**
-        * Trouve les réservations d'un utilisateur par statut avec pagination
-        */
+       /** Liste les réservations d'un utilisateur filtrées par statut. */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId AND r.statut = :statut " +
                      "ORDER BY r.dateDebut DESC, r.heureDebut DESC")
        Page<Reservation> findByUtilisateurIdAndStatut(@Param("utilisateurId") Long utilisateurId,
                      @Param("statut") StatutReservation statut,
                      Pageable pageable);
 
-       /**
-        * Trouve les réservations d'une salle pour une date donnée
-        */
+       /** Récupère les réservations d'une salle pour une date donnée. */
        @Query("SELECT r FROM Reservation r WHERE r.salle.id = :salleId " +
                      "AND ((r.dateFin IS NULL AND r.dateDebut = :date) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateDebut <= :date AND r.dateFin >= :date)) " +
                      "ORDER BY r.heureDebut ASC")
        List<Reservation> findBySalleIdAndDate(@Param("salleId") Long salleId, @Param("date") LocalDate date);
 
-       /**
-        * Vérifie s'il existe un conflit de réservation pour une plage de dates
-        * Deux réservations se chevauchent si leurs plages de dates ET leurs horaires
-        * se chevauchent
-        */
+       /** Vérifie s'il existe une réservation concurrente sur un créneau. */
        @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Reservation r " +
                      "WHERE r.salle.id = :salleId " +
                      "AND r.statut NOT IN ('CANCELLED') " +
@@ -79,10 +63,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("heureDebut") LocalTime heureDebut,
                      @Param("heureFin") LocalTime heureFin);
 
-       /**
-        * Vérifie un conflit en excluant une réservation spécifique (pour les mises à
-        * jour)
-        */
+       /** Vérifie les conflits de créneaux en excluant une réservation spécifique. */
        @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Reservation r " +
                      "WHERE r.id != :reservationId " +
                      "AND r.salle.id = :salleId " +
@@ -98,9 +79,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("heureDebut") LocalTime heureDebut,
                      @Param("heureFin") LocalTime heureFin);
 
-       /**
-        * Trouve les réservations futures d'un utilisateur avec pagination
-        */
+       /** Récupère les réservations futures d'un utilisateur. */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "AND ((r.dateFin IS NULL AND r.dateDebut >= :dateActuelle) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateFin >= :dateActuelle)) " +
@@ -110,9 +89,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("dateActuelle") LocalDate dateActuelle,
                      Pageable pageable);
 
-       /**
-        * Trouve les réservations passées d'un utilisateur avec pagination
-        */
+       /** Récupère l'historique des réservations d'un utilisateur. */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "AND ((r.dateFin IS NULL AND r.dateDebut < :dateActuelle) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateFin < :dateActuelle)) " +
@@ -122,9 +99,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("dateActuelle") LocalDate dateActuelle,
                      Pageable pageable);
 
-       /**
-        * Trouve toutes les réservations entre deux dates
-        */
+       /** Recherche les réservations dans une plage de dates. */
        @Query("SELECT r FROM Reservation r WHERE " +
                      "((r.dateFin IS NULL AND r.dateDebut BETWEEN :dateDebut AND :dateFin) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateDebut <= :dateFin AND r.dateFin >= :dateDebut)) " +
@@ -133,13 +108,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("dateDebut") LocalDate dateDebut,
                      @Param("dateFin") LocalDate dateFin);
 
-       /**
-        * Compte les réservations d'un utilisateur
-        */
+       /** Compte le nombre total de réservations pour un utilisateur. */
        long countByUtilisateurId(Long utilisateurId);
 
-       /**
-        * Compte les réservations d'une salle
-        */
+       /** Compte le nombre total de réservations pour une salle. */
        long countBySalleId(Long salleId);
 }

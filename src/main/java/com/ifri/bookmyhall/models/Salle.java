@@ -35,6 +35,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** Entité représentant une salle de réception. */
 public class Salle {
 
     @Id
@@ -83,25 +84,18 @@ public class Salle {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    /**
-     * Liste des réservations de cette salle
-     */
-    @OneToMany(mappedBy = "salle", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "salle", cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.LAZY)
     @Builder.Default
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Reservation> reservations = new ArrayList<>();
 
-    /**
-     * Active ou désactive la disponibilité de la salle
-     */
+    /** Définit l'état de disponibilité de la salle. */
     public void setDisponibilite(boolean status) {
         this.disponible = status;
     }
 
-    /**
-     * Vérifie si la salle est disponible pour réservation
-     */
+    /** Vérifie si la salle est disponible pour une réservation. */
     public boolean isReservable() {
         return this.disponible != null && this.disponible;
     }

@@ -34,6 +34,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** Entité représentant un utilisateur système. */
 public class Utilisateur {
 
     @Id
@@ -86,25 +87,18 @@ public class Utilisateur {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    /**
-     * Liste des réservations effectuées par cet utilisateur
-     */
     @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Reservation> reservations = new ArrayList<>();
 
-    /**
-     * Retourne le nom complet de l'utilisateur
-     */
+    /** Retourne le nom complet de l'utilisateur. */
     public String getNomComplet() {
         return prenom + " " + nom;
     }
 
-    /**
-     * Vérifie si l'utilisateur a le rôle ADMIN
-     */
+    /** Vérifie si l'utilisateur est un administrateur. */
     public boolean isAdmin() {
         return Role.ADMIN.equals(this.role);
     }

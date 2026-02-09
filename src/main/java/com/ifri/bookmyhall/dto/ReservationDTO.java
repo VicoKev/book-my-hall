@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** DTO pour le transfert des données des réservations. */
 public class ReservationDTO {
 
     private Long id;
@@ -31,10 +32,6 @@ public class ReservationDTO {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateDebut;
 
-    /**
-     * Date de fin de la réservation (optionnel pour réservations multi-jours)
-     * Si null, la réservation est pour un seul jour
-     */
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateFin;
 
@@ -61,88 +58,45 @@ public class ReservationDTO {
 
     private StatutReservation statut;
 
-    /**
-     * ID de l'utilisateur qui réserve
-     */
     @NotNull(message = "L'utilisateur est obligatoire")
     private Long utilisateurId;
 
-    /**
-     * Nom complet de l'utilisateur
-     */
     private String utilisateurNom;
 
-    /**
-     * ID de la salle réservée
-     */
     @NotNull(message = "La salle est obligatoire")
     private Long salleId;
 
-    /**
-     * Nom de la salle
-     */
     private String salleNom;
 
-    /**
-     * Capacité de la salle
-     */
     private Integer salleCapacite;
 
-    /**
-     * Vérifie que l'heure de fin est après l'heure de début
-     */
+    /** Vérifie la validité du créneau horaire. */
     public boolean hasValidTimeRange() {
-        if (heureDebut == null || heureFin == null) {
-            return false;
-        }
-        return heureFin.isAfter(heureDebut);
+        return heureDebut != null && heureFin != null && heureFin.isAfter(heureDebut);
     }
 
-    /**
-     * Vérifie que le nombre de personnes ne dépasse pas la capacité de la salle
-     */
+    /** Vérifie si la capacité de la salle est respectée. */
     public boolean isWithinCapacity() {
-        if (nombrePersonnes == null || salleCapacite == null) {
-            return true;
-        }
-        return nombrePersonnes <= salleCapacite;
+        return nombrePersonnes == null || salleCapacite == null || nombrePersonnes <= salleCapacite;
     }
 
-    /**
-     * Calcule la durée en heures
-     */
+    /** Calcule la durée de l'événement en heures. */
     public long getDureeEnHeures() {
-        if (heureDebut != null && heureFin != null) {
-            return java.time.Duration.between(heureDebut, heureFin).toHours();
-        }
-        return 0;
+        return (heureDebut != null && heureFin != null) ? java.time.Duration.between(heureDebut, heureFin).toHours()
+                : 0;
     }
 
-    /**
-     * Vérifie que la plage de dates est valide
-     * (dateFin >= dateDebut ou dateFin est null)
-     */
+    /** Vérifie la validité de la plage de dates. */
     public boolean hasValidDateRange() {
-        if (dateFin == null) {
-            return true; // Réservation d'un seul jour
-        }
-        if (dateDebut == null) {
-            return false;
-        }
-        return !dateFin.isBefore(dateDebut);
+        return dateFin == null || (dateDebut != null && !dateFin.isBefore(dateDebut));
     }
 
-    /**
-     * Calcule le nombre de jours de la réservation
-     * Si dateFin est null, retourne 1 (réservation d'un seul jour)
-     */
+    /** Calcule le nombre total de jours de réservation. */
     public long getNombreDeJours() {
-        if (dateFin == null) {
+        if (dateFin == null)
             return 1;
-        }
-        if (dateDebut == null) {
+        if (dateDebut == null)
             return 0;
-        }
         return java.time.temporal.ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
     }
 }

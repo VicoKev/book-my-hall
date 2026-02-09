@@ -14,54 +14,37 @@ import com.ifri.bookmyhall.models.Role;
 import com.ifri.bookmyhall.models.Utilisateur;
 
 @Repository
+/** Repository pour l'accès aux données des utilisateurs. */
 public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> {
 
-    /**
-     * Trouve un utilisateur par son nom d'utilisateur
-     */
+    /** Récupère un utilisateur par son nom d'utilisateur. */
     Optional<Utilisateur> findByUsername(String username);
 
-    /**
-     * Trouve un utilisateur par son email
-     */
+    /** Récupère un utilisateur par son email. */
     Optional<Utilisateur> findByEmail(String email);
 
-    /**
-     * Vérifie si un nom d'utilisateur existe déjà
-     */
+    /** Vérifie l'existence d'un nom d'utilisateur. */
     boolean existsByUsername(String username);
 
-    /**
-     * Vérifie si un email existe déjà
-     */
+    /** Vérifie l'existence d'une adresse email. */
     boolean existsByEmail(String email);
 
-    /**
-     * Trouve tous les utilisateurs par rôle avec pagination
-     */
+    /** Liste les utilisateurs par rôle avec pagination. */
     Page<Utilisateur> findByRole(Role role, Pageable pageable);
 
-    /**
-     * Trouve tous les utilisateurs actifs ou inactifs
-     */
+    /** Liste les utilisateurs selon leur statut actif/inactif. */
     List<Utilisateur> findByActif(Boolean actif);
 
-    /**
-     * Recherche des utilisateurs par nom ou prénom avec pagination
-     */
+    /** Recherche des utilisateurs par nom ou prénom. */
     @Query("SELECT u FROM Utilisateur u WHERE " +
             "LOWER(u.nom) LIKE LOWER(CONCAT('%', :nom, '%')) OR " +
             "LOWER(u.prenom) LIKE LOWER(CONCAT('%', :prenom, '%'))")
     Page<Utilisateur> searchByNomOrPrenom(@Param("nom") String nom, @Param("prenom") String prenom, Pageable pageable);
 
-    /**
-     * Compte le nombre d'utilisateurs par rôle
-     */
+    /** Compte le nombre d'utilisateurs pour un rôle donné. */
     long countByRole(Role role);
 
-    /**
-     * Trouve les utilisateurs avec au moins une réservation
-     */
+    /** Récupère les utilisateurs ayant fait au moins une réservation. */
     @Query("SELECT DISTINCT u FROM Utilisateur u JOIN u.reservations r")
     List<Utilisateur> findUtilisateursWithReservations();
 }

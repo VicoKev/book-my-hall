@@ -19,41 +19,32 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+/** Service pour charger les détails de l'utilisateur pour Spring Security. */
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UtilisateurRepository utilisateurRepository;
 
-    /**
-     * Charge un utilisateur par son nom d'utilisateur
-     */
+    /** Charge un utilisateur par son nom d'utilisateur. */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé: " + username));
 
-        // Vérifier si l'utilisateur est actif
         if (!utilisateur.getActif()) {
             throw new UsernameNotFoundException("Compte désactivé: " + username);
         }
 
         return new User(
-            utilisateur.getUsername(),
-            utilisateur.getPassword(),
-            utilisateur.getActif(),
-            true,
-            true,
-            true,
-            getAuthorities(utilisateur)
-        );
+                utilisateur.getUsername(),
+                utilisateur.getPassword(),
+                utilisateur.getActif(),
+                true, true, true,
+                getAuthorities(utilisateur));
     }
 
-    /**
-     * Convertit le rôle de l'utilisateur en autorités Spring Security
-     */
+    /** Convertit le rôle de l'utilisateur en authority. */
     private Collection<? extends GrantedAuthority> getAuthorities(Utilisateur utilisateur) {
-        return Collections.singletonList(
-            new SimpleGrantedAuthority(utilisateur.getRole().name())
-        );
+        return Collections.singletonList(new SimpleGrantedAuthority(utilisateur.getRole().name()));
     }
 }

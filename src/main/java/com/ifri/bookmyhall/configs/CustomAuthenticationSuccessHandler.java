@@ -10,26 +10,20 @@ import org.springframework.stereotype.Component;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
-@Slf4j
+/**
+ * Handler de succès d'authentification pour redirection vers le dashboard
+ * approprié.
+ */
 public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
+    /** Redirige l'utilisateur selon son rôle après une connexion réussie. */
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
 
-        boolean isAdmin = authentication.getAuthorities()
-                .contains(new SimpleGrantedAuthority("ADMIN"));
-
-        String redirectUrl;
-        if (isAdmin) {
-            redirectUrl = "/admin/dashboard";
-        } else {
-            redirectUrl = "/user/dashboard";
-        }
-
-        response.sendRedirect(redirectUrl);
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ADMIN"));
+        response.sendRedirect(isAdmin ? "/admin/dashboard" : "/user/dashboard");
     }
 }

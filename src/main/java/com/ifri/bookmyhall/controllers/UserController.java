@@ -2,7 +2,6 @@ package com.ifri.bookmyhall.controllers;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -24,27 +23,24 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @Slf4j
+/** Controller pour l'espace utilisateur (dashboard, profil). */
 public class UserController {
 
     private final UtilisateurService utilisateurService;
     private final ReservationService reservationService;
 
-    /**
-     * Récupère le nom d'utilisateur de l'utilisateur connecté
-     */
+    /** Récupère le nom d'utilisateur de la session courante. */
     private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }
 
     /**
-     * Affiche le dashboard de l'utilisateur
+     * Affiche le tableau de bord de l'utilisateur avec ses réservations récentes.
      */
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         String username = getCurrentUsername();
-        log.info("Accès au dashboard de l'utilisateur: {}", username);
-
         try {
             UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
             model.addAttribute("user", user);
@@ -57,48 +53,33 @@ public class UserController {
                     .getFutureReservationsByUtilisateur(user.getId(), PageRequest.of(0, 5));
             model.addAttribute("reservationsFutures", reservationsFuturesPage.getContent());
 
-            long totalReservations = reservationsPage.getTotalElements();
-            long reservationsEnCours = reservationsPage.getContent().stream()
-                    .filter(r -> r.getStatut() != null)
-                    .filter(r -> r.getStatut() != StatutReservation.CANCELLED)
-                    .filter(r -> r.getStatut() != StatutReservation.COMPLETED)
-                    .count();
-
-            model.addAttribute("totalReservations", totalReservations);
-            model.addAttribute("reservationsEnCours", reservationsEnCours);
-
-            log.debug("Dashboard chargé pour {}: {} réservations totales, {} en cours",
-                    username, totalReservations, reservationsEnCours);
+            model.addAttribute("totalReservations", reservationsPage.getTotalElements());
+            model.addAttribute("reservationsEnCours", reservationsPage.getContent().stream()
+                    .filter(r -> r.getStatut() != null && r.getStatut() != StatutReservation.CANCELLED
+                            && r.getStatut() != StatutReservation.COMPLETED)
+                    .count());
 
         } catch (Exception e) {
-            log.error("Erreur lors du chargement du dashboard pour {}", username, e);
-            model.addAttribute("errorMessage", "Erreur lors du chargement du dashboard");
+            log.error("Erreur dashboard utilisateur {}", username, e);
+            model.addAttribute("errorMessage", "Erreur lors du chargement");
         }
-
         return "user/dashboard";
     }
 
-    /**
-     * Affiche le profil de l'utilisateur
-     */
+    /** Affiche le profil de l'utilisateur. */
     @GetMapping("/profile")
     public String profile(Model model) {
         String username = getCurrentUsername();
-        log.info("Accès au profil de l'utilisateur: {}", username);
-
         try {
-            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
-            model.addAttribute("user", user);
+            model.addAttribute("user", utilisateurService.getUtilisateurByUsername(username));
         } catch (Exception e) {
-            log.error("Erreur lors du chargement du profil pour {}", username, e);
-            model.addAttribute("errorMessage", "Erreur lors du chargement du profil");
+            log.error("Erreur profil utilisateur {}", username, e);
         }
-
         return "user/profile";
     }
 
     /**
-     * Affiche toutes les réservations de l'utilisateur avec pagination
+     * Liste les réservations de l'utilisateur connecté avec filtrage et pagination.
      */
     @GetMapping("/reservations")
     public String mesReservations(
@@ -107,37 +88,28 @@ public class UserController {
             @RequestParam(required = false) String statut,
             Model model) {
         String username = getCurrentUsername();
-        log.info("Accès aux réservations de l'utilisateur: {} - Page: {}", username, page);
-
         try {
             UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
-            Pageable pageable = PageRequest.of(page, size);
-            Page<ReservationDTO> reservationsPage = reservationService.getReservationsByUtilisateur(
-                    user.getId(), statut, pageable);
+            Page<ReservationDTO> resPage = reservationService.getReservationsByUtilisateur(user.getId(), statut,
+                    PageRequest.of(page, size));
 
             model.addAttribute("user", user);
-            model.addAttribute("reservations", reservationsPage.getContent());
-            model.addAttribute("reservationsPage", reservationsPage);
+            model.addAttribute("reservations", resPage.getContent());
+            model.addAttribute("reservationsPage", resPage);
             model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", reservationsPage.getTotalPages());
+            model.addAttribute("totalPages", resPage.getTotalPages());
             model.addAttribute("filtreStatut", statut != null ? statut : "all");
 
             if (statut != null && !statut.isEmpty()) {
                 try {
-                    StatutReservation s = StatutReservation.valueOf(statut);
-                    model.addAttribute("filtreLibelle", s.getLibelle());
-                } catch (IllegalArgumentException e) {
+                    model.addAttribute("filtreLibelle", StatutReservation.valueOf(statut).getLibelle());
+                } catch (Exception e) {
                     model.addAttribute("filtreLibelle", statut);
                 }
             }
-
-            log.debug("{} réservations trouvées pour {}", reservationsPage.getTotalElements(), username);
-
         } catch (Exception e) {
-            log.error("Erreur lors du chargement des réservations pour {}", username, e);
-            model.addAttribute("errorMessage", "Erreur lors du chargement des réservations");
+            log.error("Erreur reservations utilisateur {}", username, e);
         }
-
         return "user/reservations";
     }
 }

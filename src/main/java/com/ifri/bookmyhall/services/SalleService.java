@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
+/** Service pour la gestion des salles (CRUD, recherche, images). */
 public class SalleService {
 
     private final SalleRepository salleRepository;
@@ -33,251 +34,152 @@ public class SalleService {
     @Value("${app.upload-dir}")
     private String uploadDir;
 
-    /**
-     * Crée une nouvelle salle
-     */
-    public SalleDTO createSalle(SalleDTO salleDTO, MultipartFile imageFile) {
-        log.info("Création d'une nouvelle salle: {}", salleDTO.getNom());
+    /** Crée une nouvelle salle avec une image optionnelle. */
+    public SalleDTO createSalle(SalleDTO dto, MultipartFile file) {
+        if (salleRepository.existsByNom(dto.getNom()))
+            throw new IllegalArgumentException("Nom déjà utilisé");
 
-        if (salleRepository.existsByNom(salleDTO.getNom())) {
-            throw new IllegalArgumentException("Une salle avec ce nom existe déjà");
-        }
+        if (file != null && !file.isEmpty())
+            dto.setImageFileName(saveImageFile(file));
 
-        // Handle file upload if provided
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String fileName = saveImageFile(imageFile);
-            salleDTO.setImageFileName(fileName);
-        }
-
-        Salle salle = convertToEntity(salleDTO);
-
-        if (salle.getDisponible() == null) {
+        Salle salle = convertToEntity(dto);
+        if (salle.getDisponible() == null)
             salle.setDisponible(true);
-        }
 
         Salle saved = salleRepository.save(salle);
-        log.info("Salle créée avec succès: ID {}", saved.getId());
-
+        log.info("Salle créée : {}", saved.getNom());
         return convertToDTO(saved);
     }
 
-    /**
-     * Saves an image file to the upload directory and returns the filename
-     */
-    private String saveImageFile(MultipartFile imageFile) {
+    /** Enregistre un fichier image sur le disque. */
+    private String saveImageFile(MultipartFile file) {
         try {
-            // Validate file type
-            String contentType = imageFile.getContentType();
-            if (!"image/jpeg".equals(contentType) && !"image/png".equals(contentType)
-                    && !"image/gif".equals(contentType)) {
-                throw new IllegalArgumentException("Seuls les fichiers JPEG, PNG et GIF sont autorisés");
-            }
+            String ct = file.getContentType();
+            if (ct == null || (!ct.contains("image/jpeg") && !ct.contains("image/png") && !ct.contains("image/gif")))
+                throw new IllegalArgumentException("Format invalide");
 
-            // Validate file size (10MB max)
-            if (imageFile.getSize() > 10 * 1024 * 1024) {
-                throw new IllegalArgumentException("La taille maximale du fichier est de 10MB");
-            }
+            if (file.getSize() > 10 * 1024 * 1024)
+                throw new IllegalArgumentException("Fichier trop lourd");
 
-            // Create upload directory if it doesn't exist
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
+            Path path = Paths.get(uploadDir);
+            if (!Files.exists(path))
+                Files.createDirectories(path);
 
-            // Generate unique filename
-            String originalFilename = imageFile.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String fileName = UUID.randomUUID().toString() + extension;
-
-            // Save file
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            return fileName;
+            String name = UUID.randomUUID().toString() + getExtension(file.getOriginalFilename());
+            Files.copy(file.getInputStream(), path.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+            return name;
         } catch (IOException e) {
-            log.error("Erreur lors de l'enregistrement du fichier image", e);
-            throw new RuntimeException("Erreur lors de l'enregistrement du fichier image", e);
+            log.error("Erreur sauvegarde image", e);
+            throw new RuntimeException("Erreur sauvegarde image", e);
         }
     }
 
-    /**
-     * Récupère une salle par son ID
-     */
+    /** Extrait l'extension d'un nom de fichier. */
+    private String getExtension(String filename) {
+        return (filename != null && filename.contains(".")) ? filename.substring(filename.lastIndexOf(".")) : "";
+    }
+
+    /** Récupère une salle par son identifiant. */
     @Transactional(readOnly = true)
     public SalleDTO getSalleById(Long id) {
-        log.debug("Récupération de la salle ID: {}", id);
+        return salleRepository.findById(id).map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée : " + id));
+    }
 
+    /** Récupère toutes les salles avec pagination. */
+    @Transactional(readOnly = true)
+    public Page<SalleDTO> getAllSalles(Pageable p) {
+        return salleRepository.findAll(p).map(this::convertToDTO);
+    }
+
+    /** Récupère les salles disponibles avec pagination. */
+    @Transactional(readOnly = true)
+    public Page<SalleDTO> getSallesDisponibles(Pageable p) {
+        return salleRepository.findByDisponible(true, p).map(this::convertToDTO);
+    }
+
+    /** Recherche des salles selon plusieurs critères. */
+    @Transactional(readOnly = true)
+    public Page<SalleDTO> searchSalles(String loc, Integer cap, BigDecimal prix, Pageable p) {
+        return salleRepository.searchSalles(loc, cap, prix, true, p).map(this::convertToDTO);
+    }
+
+    /** Met à jour les informations d'une salle existante. */
+    public SalleDTO updateSalle(Long id, SalleDTO dto, MultipartFile file) {
         Salle salle = salleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée : " + id));
 
-        return convertToDTO(salle);
-    }
+        if (!salle.getNom().equals(dto.getNom()) && salleRepository.existsByNom(dto.getNom()))
+            throw new IllegalArgumentException("Nom déjà utilisé");
 
-    /**
-     * Récupère toutes les salles avec pagination
-     */
-    @Transactional(readOnly = true)
-    public Page<SalleDTO> getAllSalles(Pageable pageable) {
-        log.debug("Récupération de toutes les salles (page: {})", pageable.getPageNumber());
-
-        return salleRepository.findAll(pageable)
-                .map(this::convertToDTO);
-    }
-
-    /**
-     * Récupère les salles disponibles avec pagination
-     */
-    @Transactional(readOnly = true)
-    public Page<SalleDTO> getSallesDisponibles(Pageable pageable) {
-        log.debug("Récupération des salles disponibles (page: {})", pageable.getPageNumber());
-
-        return salleRepository.findByDisponible(true, pageable)
-                .map(this::convertToDTO);
-    }
-
-    /**
-     * Recherche de salles par critères multiples avec pagination
-     */
-    @Transactional(readOnly = true)
-    public Page<SalleDTO> searchSalles(String localisation, Integer capaciteMin, BigDecimal prixMax,
-            Pageable pageable) {
-        log.debug("Recherche de salles (page: {}) - Localisation: {}, CapacitéMin: {}, PrixMax: {}",
-                pageable.getPageNumber(), localisation, capaciteMin, prixMax);
-
-        return salleRepository.searchSalles(localisation, capaciteMin, prixMax, true, pageable)
-                .map(this::convertToDTO);
-    }
-
-    /**
-     * Met à jour une salle
-     */
-    public SalleDTO updateSalle(Long id, SalleDTO salleDTO, MultipartFile imageFile) {
-        log.info("Mise à jour de la salle ID: {}", id);
-
-        Salle salle = salleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
-
-        if (!salle.getNom().equals(salleDTO.getNom()) &&
-                salleRepository.existsByNom(salleDTO.getNom())) {
-            throw new IllegalArgumentException("Une salle avec ce nom existe déjà");
-        }
-
-        // Handle file upload if provided
-        if (imageFile != null && !imageFile.isEmpty()) {
-            // Delete old image file if exists
-            if (salle.getImageFileName() != null && !salle.getImageFileName().isEmpty()) {
+        if (file != null && !file.isEmpty()) {
+            if (salle.getImageFileName() != null)
                 deleteImageFile(salle.getImageFileName());
-            }
-
-            // Save new image file
-            String fileName = saveImageFile(imageFile);
-            salleDTO.setImageFileName(fileName);
+            dto.setImageFileName(saveImageFile(file));
         } else {
-            // Keep existing image file name
-            salleDTO.setImageFileName(salle.getImageFileName());
+            dto.setImageFileName(salle.getImageFileName());
         }
 
-        salle.setNom(salleDTO.getNom());
-        salle.setCapacite(salleDTO.getCapacite());
-        salle.setLocalisation(salleDTO.getLocalisation());
-        salle.setDescription(salleDTO.getDescription());
-        salle.setPrixParJour(salleDTO.getPrixParJour());
-        salle.setImageFileName(salleDTO.getImageFileName());
-        salle.setEquipements(salleDTO.getEquipements());
-        salle.setDisponible(salleDTO.getDisponible());
+        salle.setNom(dto.getNom());
+        salle.setCapacite(dto.getCapacite());
+        salle.setLocalisation(dto.getLocalisation());
+        salle.setDescription(dto.getDescription());
+        salle.setPrixParJour(dto.getPrixParJour());
+        salle.setImageFileName(dto.getImageFileName());
+        salle.setEquipements(dto.getEquipements());
+        salle.setDisponible(dto.getDisponible());
 
-        Salle updated = salleRepository.save(salle);
-        log.info("Salle mise à jour: ID {}", updated.getId());
-
-        return convertToDTO(updated);
+        log.info("Salle mise à jour : {}", id);
+        return convertToDTO(salleRepository.save(salle));
     }
 
-    /**
-     * Deletes an image file from the upload directory
-     */
-    private void deleteImageFile(String fileName) {
+    /** Supprime un fichier image du disque. */
+    private void deleteImageFile(String name) {
         try {
-            Path filePath = Paths.get(uploadDir).resolve(fileName);
-            Files.deleteIfExists(filePath);
+            Files.deleteIfExists(Paths.get(uploadDir).resolve(name));
         } catch (IOException e) {
-            log.error("Erreur lors de la suppression du fichier image: {}", fileName, e);
+            log.error("Erreur suppression image {}", name, e);
         }
     }
 
-    /**
-     * Change la disponibilité d'une salle
-     */
-    public SalleDTO toggleDisponibilite(Long id, Boolean disponible) {
-        log.info("Modification de la disponibilité de la salle ID {}: {}", id, disponible);
-
+    /** Modifie le statut de disponibilité d'une salle. */
+    public SalleDTO toggleDisponibilite(Long id, Boolean disp) {
         Salle salle = salleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
-
-        salle.setDisponible(disponible);
-        Salle updated = salleRepository.save(salle);
-
-        return convertToDTO(updated);
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée : " + id));
+        salle.setDisponible(disp);
+        return convertToDTO(salleRepository.save(salle));
     }
 
-    /**
-     * Supprime une salle
-     */
+    /** Supprime une salle si elle n'a pas de réservations. */
     public void deleteSalle(Long id) {
-        log.info("Suppression de la salle ID: {}", id);
-
         Salle salle = salleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
-
-        if (!salle.getReservations().isEmpty()) {
-            throw new IllegalStateException("Impossible de supprimer une salle avec des réservations existantes");
-        }
-
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée : " + id));
+        if (!salle.getReservations().isEmpty())
+            throw new IllegalStateException("Réservations en cours");
         salleRepository.deleteById(id);
-        log.info("Salle supprimée: ID {}", id);
+        log.info("Salle supprimée : {}", id);
     }
 
-    /**
-     * Compte les salles disponibles
-     */
+    /** Compte le nombre total de salles disponibles. */
     @Transactional(readOnly = true)
     public long countSallesDisponibles() {
         return salleRepository.countSallesDisponibles();
     }
 
-    /**
-     * Convertit une entité Salle en DTO
-     */
-    private SalleDTO convertToDTO(Salle salle) {
-        return SalleDTO.builder()
-                .id(salle.getId())
-                .nom(salle.getNom())
-                .capacite(salle.getCapacite())
-                .localisation(salle.getLocalisation())
-                .description(salle.getDescription())
-                .prixParJour(salle.getPrixParJour())
-                .imageFileName(salle.getImageFileName())
-                .equipements(salle.getEquipements())
-                .disponible(salle.getDisponible())
-                .nombreReservations((long) salle.getReservations().size())
-                .build();
+    /** Convertit une entité en DTO. */
+    private SalleDTO convertToDTO(Salle s) {
+        return SalleDTO.builder().id(s.getId()).nom(s.getNom()).capacite(s.getCapacite())
+                .localisation(s.getLocalisation()).description(s.getDescription())
+                .prixParJour(s.getPrixParJour()).imageFileName(s.getImageFileName())
+                .equipements(s.getEquipements()).disponible(s.getDisponible())
+                .nombreReservations((long) s.getReservations().size()).build();
     }
 
-    /**
-     * Convertit un DTO en entité Salle
-     */
+    /** Convertit un DTO en entité. */
     private Salle convertToEntity(SalleDTO dto) {
-        return Salle.builder()
-                .nom(dto.getNom())
-                .capacite(dto.getCapacite())
-                .localisation(dto.getLocalisation())
-                .description(dto.getDescription())
-                .prixParJour(dto.getPrixParJour())
-                .imageFileName(dto.getImageFileName())
-                .equipements(dto.getEquipements())
-                .disponible(dto.getDisponible())
-                .build();
+        return Salle.builder().nom(dto.getNom()).capacite(dto.getCapacite())
+                .localisation(dto.getLocalisation()).description(dto.getDescription())
+                .prixParJour(dto.getPrixParJour()).imageFileName(dto.getImageFileName())
+                .equipements(dto.getEquipements()).disponible(dto.getDisponible()).build();
     }
 }

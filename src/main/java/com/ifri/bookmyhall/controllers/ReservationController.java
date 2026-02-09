@@ -32,27 +32,22 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/reservations")
 @RequiredArgsConstructor
 @Slf4j
+/** Controller pour la gestion des réservations côté utilisateur. */
 public class ReservationController {
 
     private final ReservationService reservationService;
     private final SalleService salleService;
     private final UtilisateurService utilisateurService;
 
-    /**
-     * Récupère l'utilisateur connecté
-     */
+    /** Récupère le nom d'utilisateur de la session courante. */
     private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }
 
-    /**
-     * Affiche le formulaire de nouvelle réservation
-     */
+    /** Affiche le formulaire de nouvelle réservation. */
     @GetMapping("/new")
     public String showReservationForm(@RequestParam Long salleId, Model model) {
-        log.info("Affichage du formulaire de réservation pour la salle ID: {}", salleId);
-
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken
@@ -61,215 +56,122 @@ public class ReservationController {
             }
 
             SalleDTO salle = salleService.getSalleById(salleId);
-
             if (!salle.getDisponible()) {
-                model.addAttribute("errorMessage", "Cette salle n'est pas disponible");
+                model.addAttribute("errorMessage", "Salle indisponible");
                 return "redirect:/salles/" + salleId;
             }
 
-            String username = getCurrentUsername();
-            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
-
-            ReservationDTO reservationDTO = ReservationDTO.builder()
-                    .salleId(salleId)
-                    .utilisateurId(user.getId())
-                    .dateDebut(LocalDate.now().plusDays(1))
-                    .build();
-
-            model.addAttribute("reservationDTO", reservationDTO);
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(getCurrentUsername());
+            model.addAttribute("reservationDTO", ReservationDTO.builder()
+                    .salleId(salleId).utilisateurId(user.getId())
+                    .dateDebut(LocalDate.now().plusDays(1)).build());
             model.addAttribute("salle", salle);
             model.addAttribute("user", user);
 
-            log.debug("Formulaire prêt pour {} réservant {}", username, salle.getNom());
-
         } catch (Exception e) {
-            log.error("Erreur lors du chargement du formulaire de réservation", e);
+            log.error("Erreur chargement formulaire réservation", e);
             return "redirect:/salles";
         }
-
         return "reservations/new";
     }
 
-    /**
-     * Traite la soumission du formulaire de réservation
-     */
+    /** Traite la soumission d'une nouvelle réservation. */
     @PostMapping("/create")
-    public String createReservation(@Valid @ModelAttribute("reservationDTO") ReservationDTO reservationDTO,
-            BindingResult result,
-            Model model,
-            RedirectAttributes redirectAttributes) {
-
-        log.info("Tentative de création de réservation pour la salle ID: {}", reservationDTO.getSalleId());
+    public String createReservation(@Valid @ModelAttribute("reservationDTO") ReservationDTO dto,
+            BindingResult result, Model model, RedirectAttributes redirectAttributes) {
 
         if (result.hasErrors()) {
-            log.warn("Erreurs de validation dans le formulaire");
             try {
-                SalleDTO salle = salleService.getSalleById(reservationDTO.getSalleId());
-                model.addAttribute("salle", salle);
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
             } catch (Exception e) {
-                log.error("Erreur lors de la récupération de la salle", e);
             }
             return "reservations/new";
         }
 
-        if (!reservationDTO.hasValidTimeRange()) {
-            model.addAttribute("errorMessage", "L'heure de fin doit être après l'heure de début");
+        if (!dto.hasValidTimeRange()) {
+            model.addAttribute("errorMessage", "Plage horaire invalide");
             try {
-                SalleDTO salle = salleService.getSalleById(reservationDTO.getSalleId());
-                model.addAttribute("salle", salle);
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
             } catch (Exception e) {
-                log.error("Erreur lors de la récupération de la salle", e);
             }
             return "reservations/new";
         }
 
         try {
-            ReservationDTO created = reservationService.createReservation(reservationDTO);
-
-            log.info("Réservation créée avec succès: ID {}", created.getId());
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Réservation créée avec succès ! En attente de confirmation.");
-
+            ReservationDTO created = reservationService.createReservation(dto);
+            log.info("Réservation créée : {}", created.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation créée !");
             return "redirect:/reservations/" + created.getId();
-
-        } catch (IllegalStateException e) {
-            log.error("Conflit de réservation: {}", e.getMessage());
-            model.addAttribute("errorMessage", e.getMessage());
-
-            try {
-                SalleDTO salle = salleService.getSalleById(reservationDTO.getSalleId());
-                model.addAttribute("salle", salle);
-            } catch (Exception ex) {
-                log.error("Erreur lors de la récupération de la salle", ex);
-            }
-
-            return "reservations/new";
-
         } catch (Exception e) {
-            log.error("Erreur lors de la création de la réservation", e);
-            model.addAttribute("errorMessage", "Erreur lors de la création de la réservation");
-
+            log.error("Erreur création réservation", e);
+            model.addAttribute("errorMessage", e.getMessage());
             try {
-                SalleDTO salle = salleService.getSalleById(reservationDTO.getSalleId());
-                model.addAttribute("salle", salle);
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
             } catch (Exception ex) {
-                log.error("Erreur lors de la récupération de la salle", ex);
             }
-
             return "reservations/new";
         }
     }
 
-
-    /**
-     * Affiche les détails d'une réservation
-     */
+    /** Affiche les détails d'une réservation (propriétaire ou admin). */
     @GetMapping("/{id}")
     public String detailsReservation(@PathVariable Long id, Model model) {
-        log.info("Affichage des détails de la réservation ID: {}", id);
-
         try {
-            ReservationDTO reservation = reservationService.getReservationById(id);
+            ReservationDTO res = reservationService.getReservationById(id);
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(getCurrentUsername());
 
-            String username = getCurrentUsername();
-            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
-
-            if (!reservation.getUtilisateurId().equals(user.getId()) && !user.isAdmin()) {
-                log.warn("Accès refusé à la réservation {} pour {}", id, username);
+            if (!res.getUtilisateurId().equals(user.getId()) && !user.isAdmin()) {
                 return "redirect:/user/reservations";
             }
-
-            model.addAttribute("reservation", reservation);
+            model.addAttribute("reservation", res);
             model.addAttribute("currentUser", user);
-
-            log.debug("Détails de réservation chargés pour {}", username);
-
         } catch (Exception e) {
-            log.error("Erreur lors du chargement de la réservation ID: {}", id, e);
+            log.error("Erreur chargement réservation {}", id, e);
             return "redirect:/user/reservations";
         }
-
         return "reservations/details";
     }
 
-    /**
-     * Annule une réservation
-     */
+    /** Permet à l'utilisateur ou à l'admin d'annuler une réservation. */
     @PostMapping("/{id}/annuler")
-    public String annulerReservation(@PathVariable Long id,
-            RedirectAttributes redirectAttributes) {
-        log.info("Tentative d'annulation de la réservation ID: {}", id);
-
+    public String annulerReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            // Vérifier que l'utilisateur a le droit d'annuler
-            ReservationDTO reservation = reservationService.getReservationById(id);
-            String username = getCurrentUsername();
-            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
+            ReservationDTO res = reservationService.getReservationById(id);
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(getCurrentUsername());
 
-            if (!reservation.getUtilisateurId().equals(user.getId()) && !user.isAdmin()) {
-                log.warn("Tentative d'annulation non autorisée par {}", username);
-                redirectAttributes.addFlashAttribute("errorMessage", "Action non autorisée");
+            if (!res.getUtilisateurId().equals(user.getId()) && !user.isAdmin()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Non autorisé");
                 return "redirect:/user/reservations";
             }
-
-            // Annuler la réservation
             reservationService.annulerReservation(id);
-
-            log.info("Réservation {} annulée par {}", id, username);
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Réservation annulée avec succès");
-
-        } catch (IllegalStateException e) {
-            log.error("Impossible d'annuler la réservation: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            log.info("Réservation {} annulée", id);
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation annulée");
         } catch (Exception e) {
-            log.error("Erreur lors de l'annulation de la réservation", e);
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Erreur lors de l'annulation");
+            log.error("Erreur annulation réservation {}", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
-
         return "redirect:/reservations/" + id;
     }
 
-    /**
-     * Confirme une réservation (réservé aux administrateurs)
-     */
+    /** Permet à l'admin de confirmer une réservation. */
     @PostMapping("/{id}/confirmer")
-    public String confirmerReservation(@PathVariable Long id,
-            RedirectAttributes redirectAttributes) {
-        log.info("Tentative de confirmation de la réservation ID: {}", id);
-
+    public String confirmerReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             reservationService.confirmerReservation(id);
-
             log.info("Réservation {} confirmée", id);
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Réservation confirmée avec succès");
-
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation confirmée");
         } catch (Exception e) {
-            log.error("Erreur lors de la confirmation de la réservation", e);
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Erreur lors de la confirmation");
+            log.error("Erreur confirmation réservation {}", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Erreur lors de la confirmation");
         }
-
         return "redirect:/reservations/" + id;
     }
 
-    /**
-     * Vérifie la disponibilité d'une salle pour une date et des horaires donnés
-     */
+    /** Vérifie la disponibilité d'une salle (API). */
     @GetMapping("/check-availability")
     @ResponseBody
-    public String checkAvailability(@RequestParam Long salleId,
-            @RequestParam String date,
-            @RequestParam String heureDebut,
-            @RequestParam String heureFin) {
-        // Cette méthode sera appelée en AJAX depuis le formulaire
-        // Pour l'instant, on retourne toujours disponible
-        // On l'implémentera complètement si besoin
+    public String checkAvailability(@RequestParam Long salleId, @RequestParam String date,
+            @RequestParam String heureDebut, @RequestParam String heureFin) {
         return "{\"available\": true, \"message\": \"Salle disponible\"}";
     }
 }

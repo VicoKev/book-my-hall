@@ -1,8 +1,5 @@
 package com.ifri.bookmyhall.services;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,211 +19,139 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
+/** Service pour la gestion des utilisateurs (inscription, CRUD, rôles). */
 public class UtilisateurService {
 
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * Crée un nouvel utilisateur
-     */
-    public UtilisateurDTO createUtilisateur(UtilisateurDTO UtilisateurDTO) {
-        log.info("Création d'un nouvel utilisateur: {}", UtilisateurDTO.getUsername());
+    /** Crée un nouvel utilisateur avec encodage du mot de passe. */
+    public UtilisateurDTO createUtilisateur(UtilisateurDTO dto) {
+        if (utilisateurRepository.existsByUsername(dto.getUsername()))
+            throw new IllegalArgumentException("Username existe déjà");
+        if (utilisateurRepository.existsByEmail(dto.getEmail()))
+            throw new IllegalArgumentException("Email existe déjà");
 
-        if (utilisateurRepository.existsByUsername(UtilisateurDTO.getUsername())) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur existe déjà");
-        }
+        Utilisateur user = convertToEntity(dto);
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (user.getRole() == null)
+            user.setRole(Role.USER);
+        if (user.getActif() == null)
+            user.setActif(true);
 
-        if (utilisateurRepository.existsByEmail(UtilisateurDTO.getEmail())) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
-        }
-
-        Utilisateur utilisateur = convertToEntity(UtilisateurDTO);
-
-        utilisateur.setPassword(passwordEncoder.encode(UtilisateurDTO.getPassword()));
-
-        if (utilisateur.getRole() == null) {
-            utilisateur.setRole(Role.USER);
-        }
-        if (utilisateur.getActif() == null) {
-            utilisateur.setActif(true);
-        }
-
-        Utilisateur saved = utilisateurRepository.save(utilisateur);
-        log.info("Utilisateur créé avec succès: ID {}", saved.getId());
-
+        Utilisateur saved = utilisateurRepository.save(user);
+        log.info("Utilisateur créé : {}", saved.getUsername());
         return convertToDTO(saved);
     }
 
-    /**
-     * Enregistre un nouvel utilisateur
-     */
-    public UtilisateurDTO registerUtilisateur(UtilisateurDTO UtilisateurDTO) {
-        log.info("Inscription d'un nouvel utilisateur: {}", UtilisateurDTO.getUsername());
-
-        UtilisateurDTO.setRole(Role.USER);
-        UtilisateurDTO.setActif(true);
-
-        return createUtilisateur(UtilisateurDTO);
+    /** Inscrit un nouvel utilisateur avec le rôle USER. */
+    public UtilisateurDTO registerUtilisateur(UtilisateurDTO dto) {
+        dto.setRole(Role.USER);
+        dto.setActif(true);
+        return createUtilisateur(dto);
     }
 
-    /**
-     * Récupère un utilisateur par son ID
-     */
+    /** Récupère un utilisateur par son identifiant. */
     @Transactional(readOnly = true)
     public UtilisateurDTO getUtilisateurById(Long id) {
-        log.debug("Récupération de l'utilisateur ID: {}", id);
-
-        Utilisateur utilisateur = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + id));
-
-        return convertToDTO(utilisateur);
+        return utilisateurRepository.findById(id)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + id));
     }
 
-    /**
-     * Récupère un utilisateur par son username
-     */
+    /** Récupère un utilisateur par son nom d'utilisateur. */
     @Transactional(readOnly = true)
     public UtilisateurDTO getUtilisateurByUsername(String username) {
-        log.debug("Récupération de l'utilisateur: {}", username);
-
-        Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé: " + username));
-
-        return convertToDTO(utilisateur);
+        return utilisateurRepository.findByUsername(username)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + username));
     }
 
-    /**
-     * Récupère tous les utilisateurs avec pagination
-     */
+    /** Récupère tous les utilisateurs avec pagination. */
     @Transactional(readOnly = true)
     public Page<UtilisateurDTO> getAllUtilisateurs(Pageable pageable) {
-        log.debug("Récupération de tous les utilisateurs (page: {})", pageable.getPageNumber());
-
-        return utilisateurRepository.findAll(pageable)
-                .map(this::convertToDTO);
+        return utilisateurRepository.findAll(pageable).map(this::convertToDTO);
     }
 
-    /**
-     * Récupère les utilisateurs par rôle avec pagination
-     */
+    /** Récupère les utilisateurs filtrés par rôle. */
     @Transactional(readOnly = true)
     public Page<UtilisateurDTO> getUtilisateursByRole(Role role, Pageable pageable) {
-        log.debug("Récupération des utilisateurs avec le rôle: {} (page: {})", role, pageable.getPageNumber());
-
-        return utilisateurRepository.findByRole(role, pageable)
-                .map(this::convertToDTO);
+        return utilisateurRepository.findByRole(role, pageable).map(this::convertToDTO);
     }
 
-    /**
-     * Met à jour un utilisateur
-     */
-    public UtilisateurDTO updateUtilisateur(Long id, UtilisateurDTO UtilisateurDTO) {
-        log.info("Mise à jour de l'utilisateur ID: {}", id);
+    /** Met à jour les informations d'un utilisateur existant. */
+    public UtilisateurDTO updateUtilisateur(Long id, UtilisateurDTO dto) {
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + id));
 
-        Utilisateur utilisateur = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + id));
+        if (!user.getUsername().equals(dto.getUsername()) && utilisateurRepository.existsByUsername(dto.getUsername()))
+            throw new IllegalArgumentException("Username existe déjà");
+        if (!user.getEmail().equals(dto.getEmail()) && utilisateurRepository.existsByEmail(dto.getEmail()))
+            throw new IllegalArgumentException("Email existe déjà");
 
-        if (!utilisateur.getUsername().equals(UtilisateurDTO.getUsername()) &&
-                utilisateurRepository.existsByUsername(UtilisateurDTO.getUsername())) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur existe déjà");
+        user.setNom(dto.getNom());
+        user.setPrenom(dto.getPrenom());
+        user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
+        user.setTelephone(dto.getTelephone());
+        user.setRole(dto.getRole());
+        user.setActif(dto.getActif());
+
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
-        if (!utilisateur.getEmail().equals(UtilisateurDTO.getEmail()) &&
-                utilisateurRepository.existsByEmail(UtilisateurDTO.getEmail())) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
-        }
-
-        utilisateur.setNom(UtilisateurDTO.getNom());
-        utilisateur.setPrenom(UtilisateurDTO.getPrenom());
-        utilisateur.setEmail(UtilisateurDTO.getEmail());
-        utilisateur.setUsername(UtilisateurDTO.getUsername());
-        utilisateur.setTelephone(UtilisateurDTO.getTelephone());
-        utilisateur.setRole(UtilisateurDTO.getRole());
-        utilisateur.setActif(UtilisateurDTO.getActif());
-
-        if (UtilisateurDTO.getPassword() != null && !UtilisateurDTO.getPassword().isEmpty()) {
-            utilisateur.setPassword(passwordEncoder.encode(UtilisateurDTO.getPassword()));
-        }
-
-        Utilisateur updated = utilisateurRepository.save(utilisateur);
-        log.info("Utilisateur mis à jour: ID {}", updated.getId());
-
+        Utilisateur updated = utilisateurRepository.save(user);
+        log.info("Utilisateur mis à jour : {}", id);
         return convertToDTO(updated);
     }
 
-    /**
-     * Change le rôle d'un utilisateur
-     */
+    /** Modifie le rôle d'un utilisateur. */
     public UtilisateurDTO changeRole(Long id, Role newRole) {
-        log.info("Changement de rôle pour l'utilisateur ID {}: {}", id, newRole);
-
-        Utilisateur utilisateur = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + id));
-
-        utilisateur.setRole(newRole);
-        Utilisateur updated = utilisateurRepository.save(utilisateur);
-
-        return convertToDTO(updated);
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + id));
+        user.setRole(newRole);
+        return convertToDTO(utilisateurRepository.save(user));
     }
 
-    /**
-     * Active ou désactive un utilisateur
-     */
+    /** Active ou désactive un compte utilisateur. */
     public UtilisateurDTO toggleActif(Long id, Boolean actif) {
-        log.info("Modification du statut actif pour l'utilisateur ID {}: {}", id, actif);
-
-        Utilisateur utilisateur = utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + id));
-
-        utilisateur.setActif(actif);
-        Utilisateur updated = utilisateurRepository.save(utilisateur);
-
-        return convertToDTO(updated);
+        Utilisateur user = utilisateurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + id));
+        user.setActif(actif);
+        return convertToDTO(utilisateurRepository.save(user));
     }
 
-    /**
-     * Supprime un utilisateur
-     */
+    /** Supprime un utilisateur de la base de données. */
     public void deleteUtilisateur(Long id) {
-        log.info("Suppression de l'utilisateur ID: {}", id);
-
-        if (!utilisateurRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + id);
-        }
-
+        if (!utilisateurRepository.existsById(id))
+            throw new ResourceNotFoundException("Utilisateur non trouvé : " + id);
         utilisateurRepository.deleteById(id);
-        log.info("Utilisateur supprimé: ID {}", id);
+        log.info("Utilisateur supprimé : {}", id);
     }
 
-    /**
-     * Compte les utilisateurs par rôle
-     */
+    /** Compte le nombre d'utilisateurs par rôle. */
     @Transactional(readOnly = true)
     public long countByRole(Role role) {
         return utilisateurRepository.countByRole(role);
     }
 
-    /**
-     * Convertit une entité Utilisateur en DTO
-     */
-    private UtilisateurDTO convertToDTO(Utilisateur utilisateur) {
+    /** Convertit une entité en DTO. */
+    private UtilisateurDTO convertToDTO(Utilisateur user) {
         return UtilisateurDTO.builder()
-                .id(utilisateur.getId())
-                .nom(utilisateur.getNom())
-                .prenom(utilisateur.getPrenom())
-                .email(utilisateur.getEmail())
-                .username(utilisateur.getUsername())
-                .telephone(utilisateur.getTelephone())
-                .role(utilisateur.getRole())
-                .actif(utilisateur.getActif())
-                .nomComplet(utilisateur.getNomComplet())
+                .id(user.getId())
+                .nom(user.getNom())
+                .prenom(user.getPrenom())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .telephone(user.getTelephone())
+                .role(user.getRole())
+                .actif(user.getActif())
+                .nomComplet(user.getNomComplet())
                 .build();
     }
 
-    /**
-     * Convertit un DTO en entité Utilisateur
-     */
+    /** Convertit un DTO en entité. */
     private Utilisateur convertToEntity(UtilisateurDTO dto) {
         return Utilisateur.builder()
                 .nom(dto.getNom())

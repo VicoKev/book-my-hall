@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** DTO pour le transfert des données des salles. */
 public class SalleDTO {
 
     private Long id;
@@ -50,9 +51,7 @@ public class SalleDTO {
 
     private Long nombreReservations;
 
-    /**
-     * Vérifie si la salle est réservable
-     */
+    /** Vérifie si la salle est réservable. */
     public boolean isReservable() {
         return disponible != null && disponible;
     }
