@@ -1,11 +1,19 @@
 package com.ifri.bookmyhall.services;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ifri.bookmyhall.dto.SalleDTO;
 import com.ifri.bookmyhall.exceptions.ResourceNotFoundException;
@@ -23,18 +31,27 @@ public class SalleService {
 
     private final SalleRepository salleRepository;
 
+    @Value("${app.upload-dir}")
+    private String uploadDir;
+
     /**
      * Crée une nouvelle salle
      */
-    public SalleDTO createSalle(SalleDTO salleDTO) {
+    public SalleDTO createSalle(SalleDTO salleDTO, MultipartFile imageFile) {
         log.info("Création d'une nouvelle salle: {}", salleDTO.getNom());
 
         if (salleRepository.existsByNom(salleDTO.getNom())) {
             throw new IllegalArgumentException("Une salle avec ce nom existe déjà");
         }
 
+        // Handle file upload if provided
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String fileName = saveImageFile(imageFile);
+            salleDTO.setImageFileName(fileName);
+        }
+
         Salle salle = convertToEntity(salleDTO);
-        
+
         if (salle.getDisponible() == null) {
             salle.setDisponible(true);
         }
@@ -43,6 +60,47 @@ public class SalleService {
         log.info("Salle créée avec succès: ID {}", saved.getId());
 
         return convertToDTO(saved);
+    }
+
+    /**
+     * Saves an image file to the upload directory and returns the filename
+     */
+    private String saveImageFile(MultipartFile imageFile) {
+        try {
+            // Validate file type
+            String contentType = imageFile.getContentType();
+            if (!"image/jpeg".equals(contentType) && !"image/png".equals(contentType) && !"image/gif".equals(contentType)) {
+                throw new IllegalArgumentException("Seuls les fichiers JPEG, PNG et GIF sont autorisés");
+            }
+
+            // Validate file size (10MB max)
+            if (imageFile.getSize() > 10 * 1024 * 1024) {
+                throw new IllegalArgumentException("La taille maximale du fichier est de 10MB");
+            }
+
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename
+            String originalFilename = imageFile.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String fileName = UUID.randomUUID().toString() + extension;
+
+            // Save file
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return fileName;
+        } catch (IOException e) {
+            log.error("Erreur lors de l'enregistrement du fichier image", e);
+            throw new RuntimeException("Erreur lors de l'enregistrement du fichier image", e);
+        }
     }
 
     /**
@@ -98,9 +156,9 @@ public class SalleService {
     /**
      * Met à jour une salle
      */
-    public SalleDTO updateSalle(Long id, SalleDTO salleDTO) {
+    public SalleDTO updateSalle(Long id, SalleDTO salleDTO, MultipartFile imageFile) {
         log.info("Mise à jour de la salle ID: {}", id);
-        
+
         Salle salle = salleRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
 
@@ -109,12 +167,27 @@ public class SalleService {
             throw new IllegalArgumentException("Une salle avec ce nom existe déjà");
         }
 
+        // Handle file upload if provided
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // Delete old image file if exists
+            if (salle.getImageFileName() != null && !salle.getImageFileName().isEmpty()) {
+                deleteImageFile(salle.getImageFileName());
+            }
+
+            // Save new image file
+            String fileName = saveImageFile(imageFile);
+            salleDTO.setImageFileName(fileName);
+        } else {
+            // Keep existing image file name
+            salleDTO.setImageFileName(salle.getImageFileName());
+        }
+
         salle.setNom(salleDTO.getNom());
         salle.setCapacite(salleDTO.getCapacite());
         salle.setLocalisation(salleDTO.getLocalisation());
         salle.setDescription(salleDTO.getDescription());
         salle.setPrixParJour(salleDTO.getPrixParJour());
-        salle.setImageUrl(salleDTO.getImageUrl());
+        salle.setImageFileName(salleDTO.getImageFileName());
         salle.setEquipements(salleDTO.getEquipements());
         salle.setDisponible(salleDTO.getDisponible());
 
@@ -122,6 +195,18 @@ public class SalleService {
         log.info("Salle mise à jour: ID {}", updated.getId());
 
         return convertToDTO(updated);
+    }
+
+    /**
+     * Deletes an image file from the upload directory
+     */
+    private void deleteImageFile(String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            log.error("Erreur lors de la suppression du fichier image: {}", fileName, e);
+        }
     }
 
     /**
@@ -175,7 +260,7 @@ public class SalleService {
             .localisation(salle.getLocalisation())
             .description(salle.getDescription())
             .prixParJour(salle.getPrixParJour())
-            .imageUrl(salle.getImageUrl())
+            .imageFileName(salle.getImageFileName())
             .equipements(salle.getEquipements())
             .disponible(salle.getDisponible())
             .nombreReservations((long) salle.getReservations().size())
@@ -192,7 +277,7 @@ public class SalleService {
             .localisation(dto.getLocalisation())
             .description(dto.getDescription())
             .prixParJour(dto.getPrixParJour())
-            .imageUrl(dto.getImageUrl())
+            .imageFileName(dto.getImageFileName())
             .equipements(dto.getEquipements())
             .disponible(dto.getDisponible())
             .build();
