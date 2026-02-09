@@ -20,7 +20,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -34,10 +33,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Entity
-@Table(name = "reservations", 
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"salle_id", "date_reservation", "heure_debut"})
-       })
+@Table(name = "reservations")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,10 +44,17 @@ public class Reservation {
     @GeneratedValue
     private Long id;
 
-    @NotNull(message = "La date de réservation est obligatoire")
-    @Future(message = "La date de réservation doit être future")
+    @NotNull(message = "La date de début est obligatoire")
+    @Future(message = "La date de début doit être future")
     @Column(nullable = false)
-    private LocalDate dateReservation;
+    private LocalDate dateDebut;
+
+    /**
+     * Date de fin de la réservation (pour réservations multi-jours)
+     * Si null, la réservation est pour un seul jour (dateDebut uniquement)
+     */
+    @Column(nullable = true)
+    private LocalDate dateFin;
 
     @NotNull(message = "L'heure de début est obligatoire")
     @Column(nullable = false)
@@ -137,6 +140,7 @@ public class Reservation {
 
     /**
      * Vérifie que l'heure de fin est après l'heure de début
+     * et que la date de fin est après ou égale à la date de début
      */
     @PrePersist
     @PreUpdate
@@ -144,6 +148,13 @@ public class Reservation {
         if (heureDebut != null && heureFin != null) {
             if (heureFin.isBefore(heureDebut) || heureFin.equals(heureDebut)) {
                 throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
+            }
+        }
+
+        // Validation de la plage de dates
+        if (dateFin != null && dateDebut != null) {
+            if (dateFin.isBefore(dateDebut)) {
+                throw new IllegalArgumentException("La date de fin doit être après ou égale à la date de début");
             }
         }
     }
@@ -156,6 +167,17 @@ public class Reservation {
             return java.time.Duration.between(heureDebut, heureFin).toHours();
         }
         return 0;
+    }
+
+    /**
+     * Calcule le nombre de jours de la réservation
+     * Si dateFin est null, retourne 1 (réservation d'un seul jour)
+     */
+    public long getNombreDeJours() {
+        if (dateFin == null) {
+            return 1; // Compatibilité avec les anciennes réservations
+        }
+        return java.time.temporal.ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
     }
 
     /**
