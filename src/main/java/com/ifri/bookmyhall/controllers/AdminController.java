@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.ifri.bookmyhall.dto.ReservationDTO;
 import com.ifri.bookmyhall.dto.SalleDTO;
@@ -320,6 +321,7 @@ public class AdminController {
      */
     @PostMapping("/salles/create")
     public String createSalle(@Valid @ModelAttribute("salleDTO") SalleDTO salleDTO,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
             BindingResult result,
             Model model,
             RedirectAttributes redirectAttributes) {
@@ -331,7 +333,7 @@ public class AdminController {
         }
 
         try {
-            salleService.createSalle(salleDTO);
+            salleService.createSalle(salleDTO, imageFile);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Salle créée avec succès");
             return "redirect:/admin/salles";
@@ -349,6 +351,7 @@ public class AdminController {
     @PostMapping("/salles/{id}/update")
     public String updateSalle(@PathVariable Long id,
             @Valid @ModelAttribute("salleDTO") SalleDTO salleDTO,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
             BindingResult result,
             Model model,
             RedirectAttributes redirectAttributes) {
@@ -360,7 +363,7 @@ public class AdminController {
         }
 
         try {
-            salleService.updateSalle(id, salleDTO);
+            salleService.updateSalle(id, salleDTO, imageFile);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Salle mise à jour avec succès");
             return "redirect:/admin/salles";
