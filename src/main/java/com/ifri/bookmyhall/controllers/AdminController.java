@@ -1,8 +1,11 @@
 package com.ifri.bookmyhall.controllers;
 
 import java.util.Arrays;
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +23,7 @@ import com.ifri.bookmyhall.dto.ReservationDTO;
 import com.ifri.bookmyhall.dto.SalleDTO;
 import com.ifri.bookmyhall.dto.UtilisateurDTO;
 import com.ifri.bookmyhall.models.Role;
+import com.ifri.bookmyhall.models.Reservation.StatutReservation;
 import com.ifri.bookmyhall.services.ReservationService;
 import com.ifri.bookmyhall.services.SalleService;
 import com.ifri.bookmyhall.services.UtilisateurService;
@@ -46,9 +50,9 @@ public class AdminController {
     public String dashboard(Model model) {
 
         try {
-            long totalUtilisateurs = utilisateurService.getAllUtilisateurs().size();
-            long totalSalles = salleService.getAllSalles().size();
-            long totalReservations = reservationService.getAllReservations().size();
+            long totalUtilisateurs = utilisateurService.getAllUtilisateurs(PageRequest.of(0, 1)).getTotalElements();
+            long totalSalles = salleService.getAllSalles(PageRequest.of(0, 1)).getTotalElements();
+            long totalReservations = reservationService.getAllReservations(PageRequest.of(0, 5)).getTotalElements();
             long sallesDisponibles = salleService.countSallesDisponibles();
 
             model.addAttribute("totalUtilisateurs", totalUtilisateurs);
@@ -56,11 +60,9 @@ public class AdminController {
             model.addAttribute("totalReservations", totalReservations);
             model.addAttribute("sallesDisponibles", sallesDisponibles);
 
-            List<ReservationDTO> dernieresReservations = reservationService.getAllReservations();
-            if (dernieresReservations.size() > 5) {
-                dernieresReservations = dernieresReservations.subList(0, 5);
-            }
-            model.addAttribute("dernieresReservations", dernieresReservations);
+            Page<ReservationDTO> dernierePage = reservationService.getAllReservations(
+                    PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "id")));
+            model.addAttribute("dernieresReservations", dernierePage.getContent());
 
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Erreur lors du chargement des statistiques");
@@ -187,15 +189,23 @@ public class AdminController {
     }
 
     /**
-     * Liste tous les utilisateurs
+     * Liste tous les utilisateurs avec pagination
      */
     @GetMapping("/users")
-    public String listUsers(Model model) {
-        log.info("Accès à la gestion des utilisateurs");
+    public String listUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Model model) {
+        log.info("Accès à la gestion des utilisateurs - Page: {}", page);
 
         try {
-            List<UtilisateurDTO> users = utilisateurService.getAllUtilisateurs();
-            model.addAttribute("users", users);
+            Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+            Page<UtilisateurDTO> usersPage = utilisateurService.getAllUtilisateurs(pageable);
+
+            model.addAttribute("users", usersPage.getContent());
+            model.addAttribute("usersPage", usersPage);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", usersPage.getTotalPages());
 
             long admins = utilisateurService.countByRole(Role.ADMIN);
             long normalUsers = utilisateurService.countByRole(Role.USER);
@@ -273,15 +283,22 @@ public class AdminController {
     }
 
     /**
-     * Liste toutes les salles
+     * Liste toutes les salles avec pagination
      */
     @GetMapping("/salles")
-    public String listSalles(Model model) {
-        log.info("Accès à la gestion des salles");
+    public String listSalles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Model model) {
+        log.info("Accès à la gestion des salles - Page: {}", page);
 
         try {
-            List<SalleDTO> salles = salleService.getAllSalles();
-            model.addAttribute("salles", salles);
+            Pageable pageable = PageRequest.of(page, size, Sort.by("nom").ascending());
+            Page<SalleDTO> sallesPage = salleService.getAllSalles(pageable);
+            model.addAttribute("salles", sallesPage.getContent());
+            model.addAttribute("sallesPage", sallesPage);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", sallesPage.getTotalPages());
         } catch (Exception e) {
             log.error("Erreur lors du chargement des salles", e);
             model.addAttribute("errorMessage", "Erreur lors du chargement");
@@ -420,24 +437,40 @@ public class AdminController {
     }
 
     /**
-     * Liste toutes les réservations
+     * Liste toutes les réservations avec pagination
      */
     @GetMapping("/reservations")
-    public String listReservations(@RequestParam(required = false) String statut,
+    public String listReservations(
+            @RequestParam(required = false) String statut,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             Model model) {
-        log.info("Accès à la gestion des réservations - Filtre statut: {}", statut);
+        log.info("Accès à la gestion des réservations - Filtre statut: {}, Page: {}", statut, page);
 
         try {
-            List<ReservationDTO> reservations;
+            Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+            Page<ReservationDTO> reservationsPage;
 
             if (statut != null && !statut.isEmpty()) {
-                reservations = reservationService.getReservationsByStatut(statut);
+                reservationsPage = reservationService.getReservationsByStatut(statut, pageable);
             } else {
-                reservations = reservationService.getAllReservations();
+                reservationsPage = reservationService.getAllReservations(pageable);
             }
 
-            model.addAttribute("reservations", reservations);
+            model.addAttribute("reservations", reservationsPage.getContent());
+            model.addAttribute("reservationsPage", reservationsPage);
             model.addAttribute("filtreStatut", statut);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", reservationsPage.getTotalPages());
+
+            if (statut != null && !statut.isEmpty()) {
+                try {
+                    StatutReservation s = StatutReservation.valueOf(statut);
+                    model.addAttribute("filtreLibelle", s.getLibelle());
+                } catch (IllegalArgumentException e) {
+                    model.addAttribute("filtreLibelle", statut);
+                }
+            }
         } catch (Exception e) {
             log.error("Erreur lors du chargement des réservations", e);
             model.addAttribute("errorMessage", "Erreur lors du chargement");
