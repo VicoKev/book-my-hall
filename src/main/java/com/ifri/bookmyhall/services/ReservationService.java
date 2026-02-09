@@ -46,7 +46,9 @@ public class ReservationService {
 
         Reservation reservation = convertToEntity(reservationDTO, utilisateur, salle);
 
-        reservation.setMontantTotal(salle.getPrixParJour());
+        // Calcul du montant total basé sur le nombre de jours
+        long nombreDeJours = reservationDTO.getNombreDeJours();
+        reservation.setMontantTotal(salle.getPrixParJour().multiply(java.math.BigDecimal.valueOf(nombreDeJours)));
 
         reservation.setStatut(StatutReservation.PENDING);
 
@@ -165,7 +167,8 @@ public class ReservationService {
 
         validateReservation(reservationDTO, salle, id);
 
-        reservation.setDateReservation(reservationDTO.getDateReservation());
+        reservation.setDateDebut(reservationDTO.getDateDebut());
+        reservation.setDateFin(reservationDTO.getDateFin());
         reservation.setHeureDebut(reservationDTO.getHeureDebut());
         reservation.setHeureFin(reservationDTO.getHeureFin());
         reservation.setTypeEvenement(reservationDTO.getTypeEvenement());
@@ -173,7 +176,9 @@ public class ReservationService {
         reservation.setNombrePersonnes(reservationDTO.getNombrePersonnes());
         reservation.setSalle(salle);
 
-        reservation.setMontantTotal(salle.getPrixParJour());
+        // Recalculer le montant total basé sur le nombre de jours
+        long nombreDeJours = reservationDTO.getNombreDeJours();
+        reservation.setMontantTotal(salle.getPrixParJour().multiply(java.math.BigDecimal.valueOf(nombreDeJours)));
 
         Reservation updated = reservationRepository.save(reservation);
         log.info("Réservation mise à jour: ID {}", updated.getId());
@@ -238,24 +243,34 @@ public class ReservationService {
             throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
         }
 
+        if (!dto.hasValidDateRange()) {
+            throw new IllegalArgumentException("La date de fin doit être après ou égale à la date de début");
+        }
+
         if (dto.getNombrePersonnes() > salle.getCapacite()) {
             throw new IllegalArgumentException(
                     String.format("Le nombre de personnes (%d) dépasse la capacité de la salle (%d)",
                             dto.getNombrePersonnes(), salle.getCapacite()));
         }
 
+        // Déterminer la plage de dates à vérifier
+        LocalDate dateDebut = dto.getDateDebut();
+        LocalDate dateFin = dto.getDateFin() != null ? dto.getDateFin() : dto.getDateDebut();
+
         boolean hasConflict;
         if (excludeId != null) {
             hasConflict = reservationRepository.existsConflictingReservationExcludingId(
                     excludeId,
                     salle.getId(),
-                    dto.getDateReservation(),
+                    dateDebut,
+                    dateFin,
                     dto.getHeureDebut(),
                     dto.getHeureFin());
         } else {
             hasConflict = reservationRepository.existsConflictingReservation(
                     salle.getId(),
-                    dto.getDateReservation(),
+                    dateDebut,
+                    dateFin,
                     dto.getHeureDebut(),
                     dto.getHeureFin());
         }
@@ -272,7 +287,8 @@ public class ReservationService {
     private ReservationDTO convertToDTO(Reservation reservation) {
         return ReservationDTO.builder()
                 .id(reservation.getId())
-                .dateReservation(reservation.getDateReservation())
+                .dateDebut(reservation.getDateDebut())
+                .dateFin(reservation.getDateFin())
                 .heureDebut(reservation.getHeureDebut())
                 .heureFin(reservation.getHeureFin())
                 .typeEvenement(reservation.getTypeEvenement())
@@ -293,7 +309,8 @@ public class ReservationService {
      */
     private Reservation convertToEntity(ReservationDTO dto, Utilisateur utilisateur, Salle salle) {
         return Reservation.builder()
-                .dateReservation(dto.getDateReservation())
+                .dateDebut(dto.getDateDebut())
+                .dateFin(dto.getDateFin())
                 .heureDebut(dto.getHeureDebut())
                 .heureFin(dto.getHeureFin())
                 .typeEvenement(dto.getTypeEvenement())
