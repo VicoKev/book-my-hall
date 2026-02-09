@@ -2,27 +2,35 @@ package com.ifri.bookmyhall.controllers;
 
 import java.net.URISyntaxException;
 
+import org.springframework.boot.webmvc.error.ErrorController;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.ifri.bookmyhall.dto.UtilisateurDTO;
 import com.ifri.bookmyhall.services.UtilisateurService;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Controller
+@ControllerAdvice
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
@@ -150,5 +158,31 @@ public class AuthController {
             model.addAttribute("errorMessage", e.getMessage());
             return "register";
         }
+    }
+
+    /**
+     * Affiche la page d'accès refusé
+     */
+    @GetMapping("/access-denied")
+    public String accessDenied() {
+        return "error/access-denied";
+    }
+
+    /**
+     * Gère les pages non trouvées (erreur 404)
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public String handleNotFound(HttpServletRequest request) {
+        log.warn("Page non trouvée détectée par le handler global: {}", request.getRequestURI());
+        return "error/404";
+    }
+
+    /**
+     * Gère les autres exceptions non capturées
+     */
+    @ExceptionHandler(Exception.class)
+    public String handleGeneralException(Exception ex, HttpServletRequest request) {
+        log.error("Exception non capturée pour {}: {}", request.getRequestURI(), ex.getMessage());
+        return "error/generic";
     }
 }
