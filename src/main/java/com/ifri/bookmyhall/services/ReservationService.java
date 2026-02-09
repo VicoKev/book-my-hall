@@ -37,17 +37,17 @@ public class ReservationService {
         log.info("Création d'une nouvelle réservation pour la salle ID: {}", reservationDTO.getSalleId());
 
         Utilisateur utilisateur = utilisateurRepository.findById(reservationDTO.getUtilisateurId())
-            .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
 
         Salle salle = salleRepository.findById(reservationDTO.getSalleId())
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
 
         validateReservation(reservationDTO, salle, null);
 
         Reservation reservation = convertToEntity(reservationDTO, utilisateur, salle);
-        
+
         reservation.setMontantTotal(salle.getPrixParJour());
-        
+
         reservation.setStatut(StatutReservation.PENDING);
 
         Reservation saved = reservationRepository.save(reservation);
@@ -62,10 +62,10 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public ReservationDTO getReservationById(Long id) {
         log.debug("Récupération de la réservation ID: {}", id);
-        
+
         Reservation reservation = reservationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
+
         return convertToDTO(reservation);
     }
 
@@ -75,10 +75,28 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationDTO> getAllReservations() {
         log.debug("Récupération de toutes les réservations");
-        
+
         return reservationRepository.findAll().stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Récupère les réservations par statut
+     */
+    @Transactional(readOnly = true)
+    public List<ReservationDTO> getReservationsByStatut(String statut) {
+        log.debug("Récupération des réservations avec statut: {}", statut);
+
+        try {
+            StatutReservation statutEnum = StatutReservation.valueOf(statut);
+            return reservationRepository.findByStatut(statutEnum).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            log.warn("Statut invalide: {}", statut);
+            return getAllReservations();
+        }
     }
 
     /**
@@ -87,10 +105,10 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationDTO> getReservationsByUtilisateur(Long utilisateurId) {
         log.debug("Récupération des réservations de l'utilisateur ID: {}", utilisateurId);
-        
+
         return reservationRepository.findByUtilisateurIdOrderByDateDesc(utilisateurId).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -99,11 +117,11 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationDTO> getFutureReservationsByUtilisateur(Long utilisateurId) {
         log.debug("Récupération des réservations futures de l'utilisateur ID: {}", utilisateurId);
-        
+
         LocalDate today = LocalDate.now();
         return reservationRepository.findFutureReservationsByUtilisateur(utilisateurId, today).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -112,13 +130,13 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationDTO> getReservationsBySalle(Long salleId) {
         log.debug("Récupération des réservations de la salle ID: {}", salleId);
-        
+
         Salle salle = salleRepository.findById(salleId)
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
+
         return reservationRepository.findBySalle(salle).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -127,10 +145,10 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationDTO> getReservationsBySalleAndDate(Long salleId, LocalDate date) {
         log.debug("Récupération des réservations de la salle ID {} pour le {}", salleId, date);
-        
+
         return reservationRepository.findBySalleIdAndDate(salleId, date).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -138,12 +156,12 @@ public class ReservationService {
      */
     public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
         log.info("Mise à jour de la réservation ID: {}", id);
-        
+
         Reservation reservation = reservationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
 
         Salle salle = salleRepository.findById(reservationDTO.getSalleId())
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée"));
 
         validateReservation(reservationDTO, salle, id);
 
@@ -168,9 +186,9 @@ public class ReservationService {
      */
     public ReservationDTO confirmerReservation(Long id) {
         log.info("Confirmation de la réservation ID: {}", id);
-        
+
         Reservation reservation = reservationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
 
         reservation.confirmerR();
         Reservation updated = reservationRepository.save(reservation);
@@ -183,9 +201,9 @@ public class ReservationService {
      */
     public ReservationDTO annulerReservation(Long id) {
         log.info("Annulation de la réservation ID: {}", id);
-        
+
         Reservation reservation = reservationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id));
 
         reservation.annulerR();
         Reservation updated = reservationRepository.save(reservation);
@@ -198,7 +216,7 @@ public class ReservationService {
      */
     public void deleteReservation(Long id) {
         log.info("Suppression de la réservation ID: {}", id);
-        
+
         if (!reservationRepository.existsById(id)) {
             throw new ResourceNotFoundException("Réservation non trouvée avec l'ID: " + id);
         }
@@ -211,7 +229,7 @@ public class ReservationService {
      * Valide une réservation
      */
     private void validateReservation(ReservationDTO dto, Salle salle, Long excludeId) {
-        
+
         if (!salle.isReservable()) {
             throw new IllegalStateException("Cette salle n'est pas disponible pour réservation");
         }
@@ -222,33 +240,29 @@ public class ReservationService {
 
         if (dto.getNombrePersonnes() > salle.getCapacite()) {
             throw new IllegalArgumentException(
-                String.format("Le nombre de personnes (%d) dépasse la capacité de la salle (%d)",
-                    dto.getNombrePersonnes(), salle.getCapacite())
-            );
+                    String.format("Le nombre de personnes (%d) dépasse la capacité de la salle (%d)",
+                            dto.getNombrePersonnes(), salle.getCapacite()));
         }
 
         boolean hasConflict;
         if (excludeId != null) {
             hasConflict = reservationRepository.existsConflictingReservationExcludingId(
-                excludeId,
-                salle.getId(),
-                dto.getDateReservation(),
-                dto.getHeureDebut(),
-                dto.getHeureFin()
-            );
+                    excludeId,
+                    salle.getId(),
+                    dto.getDateReservation(),
+                    dto.getHeureDebut(),
+                    dto.getHeureFin());
         } else {
             hasConflict = reservationRepository.existsConflictingReservation(
-                salle.getId(),
-                dto.getDateReservation(),
-                dto.getHeureDebut(),
-                dto.getHeureFin()
-            );
+                    salle.getId(),
+                    dto.getDateReservation(),
+                    dto.getHeureDebut(),
+                    dto.getHeureFin());
         }
 
         if (hasConflict) {
             throw new IllegalStateException(
-                "Cette salle est déjà réservée sur ce créneau horaire"
-            );
+                    "Cette salle est déjà réservée sur ce créneau horaire");
         }
     }
 
@@ -257,21 +271,21 @@ public class ReservationService {
      */
     private ReservationDTO convertToDTO(Reservation reservation) {
         return ReservationDTO.builder()
-            .id(reservation.getId())
-            .dateReservation(reservation.getDateReservation())
-            .heureDebut(reservation.getHeureDebut())
-            .heureFin(reservation.getHeureFin())
-            .typeEvenement(reservation.getTypeEvenement())
-            .description(reservation.getDescription())
-            .nombrePersonnes(reservation.getNombrePersonnes())
-            .montantTotal(reservation.getMontantTotal())
-            .statut(reservation.getStatut())
-            .utilisateurId(reservation.getUtilisateur().getId())
-            .utilisateurNom(reservation.getUtilisateur().getNomComplet())
-            .salleId(reservation.getSalle().getId())
-            .salleNom(reservation.getSalle().getNom())
-            .salleCapacite(reservation.getSalle().getCapacite())
-            .build();
+                .id(reservation.getId())
+                .dateReservation(reservation.getDateReservation())
+                .heureDebut(reservation.getHeureDebut())
+                .heureFin(reservation.getHeureFin())
+                .typeEvenement(reservation.getTypeEvenement())
+                .description(reservation.getDescription())
+                .nombrePersonnes(reservation.getNombrePersonnes())
+                .montantTotal(reservation.getMontantTotal())
+                .statut(reservation.getStatut())
+                .utilisateurId(reservation.getUtilisateur().getId())
+                .utilisateurNom(reservation.getUtilisateur().getNomComplet())
+                .salleId(reservation.getSalle().getId())
+                .salleNom(reservation.getSalle().getNom())
+                .salleCapacite(reservation.getSalle().getCapacite())
+                .build();
     }
 
     /**
@@ -279,14 +293,14 @@ public class ReservationService {
      */
     private Reservation convertToEntity(ReservationDTO dto, Utilisateur utilisateur, Salle salle) {
         return Reservation.builder()
-            .dateReservation(dto.getDateReservation())
-            .heureDebut(dto.getHeureDebut())
-            .heureFin(dto.getHeureFin())
-            .typeEvenement(dto.getTypeEvenement())
-            .description(dto.getDescription())
-            .nombrePersonnes(dto.getNombrePersonnes())
-            .utilisateur(utilisateur)
-            .salle(salle)
-            .build();
+                .dateReservation(dto.getDateReservation())
+                .heureDebut(dto.getHeureDebut())
+                .heureFin(dto.getHeureFin())
+                .typeEvenement(dto.getTypeEvenement())
+                .description(dto.getDescription())
+                .nombrePersonnes(dto.getNombrePersonnes())
+                .utilisateur(utilisateur)
+                .salle(salle)
+                .build();
     }
 }
