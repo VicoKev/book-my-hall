@@ -43,7 +43,6 @@ public class AdminController {
      */
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        log.info("Accès au dashboard admin");
 
         try {
             long totalUtilisateurs = utilisateurService.getAllUtilisateurs().size();
@@ -62,11 +61,7 @@ public class AdminController {
             }
             model.addAttribute("dernieresReservations", dernieresReservations);
 
-            log.debug("Statistiques chargées: {} users, {} salles, {} reservations",
-                    totalUtilisateurs, totalSalles, totalReservations);
-
         } catch (Exception e) {
-            log.error("Erreur lors du chargement du dashboard admin", e);
             model.addAttribute("errorMessage", "Erreur lors du chargement des statistiques");
         }
 
@@ -78,7 +73,6 @@ public class AdminController {
      */
     @GetMapping("/users/add")
     public String showAddUserForm(Model model) {
-        log.info("Affichage du formulaire d'ajout d'utilisateur");
 
         UtilisateurDTO utilisateurDTO = new UtilisateurDTO();
         utilisateurDTO.setActif(true);
@@ -431,7 +425,14 @@ public class AdminController {
         log.info("Accès à la gestion des réservations - Filtre statut: {}", statut);
 
         try {
-            List<ReservationDTO> reservations = reservationService.getAllReservations();
+            List<ReservationDTO> reservations;
+
+            if (statut != null && !statut.isEmpty()) {
+                reservations = reservationService.getReservationsByStatut(statut);
+            } else {
+                reservations = reservationService.getAllReservations();
+            }
+
             model.addAttribute("reservations", reservations);
             model.addAttribute("filtreStatut", statut);
         } catch (Exception e) {
