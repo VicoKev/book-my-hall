@@ -41,7 +41,7 @@ public class SalleDTO {
     @DecimalMin(value = "0.0", inclusive = false, message = "Le prix doit être supérieur à 0")
     private BigDecimal prixParJour;
 
-    private String imageUrl;
+    private String imageFileName;
 
     @Size(max = 500, message = "Les équipements ne peuvent pas dépasser 500 caractères")
     private String equipements;
