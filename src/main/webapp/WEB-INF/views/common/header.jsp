@@ -95,7 +95,7 @@
                         <sec:authorize access="hasAuthority('ADMIN')">
                             <li class="nav-item">
                                 <a class="nav-link text-danger fw-bold" href="${pageContext.request.contextPath}/admin/dashboard">
-                                    <i class="bi bi-shield-check"></i> Admin Dashboard
+                                    <i class="bi bi-shield-check"></i> Dashboard
                                 </a>
                             </li>
                         </sec:authorize>
