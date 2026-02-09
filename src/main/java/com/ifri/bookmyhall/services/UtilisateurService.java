@@ -3,6 +3,8 @@ package com.ifri.bookmyhall.services;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,27 +97,25 @@ public class UtilisateurService {
     }
 
     /**
-     * Récupère tous les utilisateurs
+     * Récupère tous les utilisateurs avec pagination
      */
     @Transactional(readOnly = true)
-    public List<UtilisateurDTO> getAllUtilisateurs() {
-        log.debug("Récupération de tous les utilisateurs");
+    public Page<UtilisateurDTO> getAllUtilisateurs(Pageable pageable) {
+        log.debug("Récupération de tous les utilisateurs (page: {})", pageable.getPageNumber());
 
-        return utilisateurRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return utilisateurRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     /**
-     * Récupère les utilisateurs par rôle
+     * Récupère les utilisateurs par rôle avec pagination
      */
     @Transactional(readOnly = true)
-    public List<UtilisateurDTO> getUtilisateursByRole(Role role) {
-        log.debug("Récupération des utilisateurs avec le rôle: {}", role);
+    public Page<UtilisateurDTO> getUtilisateursByRole(Role role, Pageable pageable) {
+        log.debug("Récupération des utilisateurs avec le rôle: {} (page: {})", role, pageable.getPageNumber());
 
-        return utilisateurRepository.findByRole(role).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return utilisateurRepository.findByRole(role, pageable)
+                .map(this::convertToDTO);
     }
 
     /**
