@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,58 +74,76 @@ public class ReservationService {
     }
 
     /**
-     * Récupère toutes les réservations
+     * Récupère toutes les réservations avec pagination
      */
     @Transactional(readOnly = true)
-    public List<ReservationDTO> getAllReservations() {
-        log.debug("Récupération de toutes les réservations");
+    public Page<ReservationDTO> getAllReservations(Pageable pageable) {
+        log.debug("Récupération de toutes les réservations (page: {})", pageable.getPageNumber());
 
-        return reservationRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return reservationRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     /**
-     * Récupère les réservations par statut
+     * Récupère les réservations par statut avec pagination
      */
     @Transactional(readOnly = true)
-    public List<ReservationDTO> getReservationsByStatut(String statut) {
-        log.debug("Récupération des réservations avec statut: {}", statut);
+    public Page<ReservationDTO> getReservationsByStatut(String statut, Pageable pageable) {
+        log.debug("Récupération des réservations avec statut: {} (page: {})", statut, pageable.getPageNumber());
 
         try {
             StatutReservation statutEnum = StatutReservation.valueOf(statut);
-            return reservationRepository.findByStatut(statutEnum).stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
+            return reservationRepository.findByStatut(statutEnum, pageable)
+                    .map(this::convertToDTO);
         } catch (IllegalArgumentException e) {
             log.warn("Statut invalide: {}", statut);
-            return getAllReservations();
+            return getAllReservations(pageable);
         }
     }
 
     /**
-     * Récupère les réservations d'un utilisateur
+     * Récupère les réservations d'un utilisateur avec pagination et optionnellement
+     * par statut
      */
     @Transactional(readOnly = true)
-    public List<ReservationDTO> getReservationsByUtilisateur(Long utilisateurId) {
-        log.debug("Récupération des réservations de l'utilisateur ID: {}", utilisateurId);
+    public Page<ReservationDTO> getReservationsByUtilisateur(Long utilisateurId, String statut, Pageable pageable) {
+        log.debug("Récupération des réservations de l'utilisateur ID: {} (statut: {}, page: {})",
+                utilisateurId, statut, pageable.getPageNumber());
 
-        return reservationRepository.findByUtilisateurIdOrderByDateDesc(utilisateurId).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        if (statut != null && !statut.isEmpty() && !statut.equalsIgnoreCase("all")) {
+            try {
+                StatutReservation statutEnum = StatutReservation.valueOf(statut);
+                return reservationRepository.findByUtilisateurIdAndStatut(utilisateurId, statutEnum, pageable)
+                        .map(this::convertToDTO);
+            } catch (IllegalArgumentException e) {
+                log.warn("Statut invalide pour l'utilisateur {}: {}", utilisateurId, statut);
+            }
+        }
+
+        return reservationRepository.findByUtilisateurIdOrderByDateDesc(utilisateurId, pageable)
+                .map(this::convertToDTO);
     }
 
     /**
-     * Récupère les réservations futures d'un utilisateur
+     * Récupère les réservations d'un utilisateur avec pagination (Surcharge pour
+     * compatibilité)
      */
     @Transactional(readOnly = true)
-    public List<ReservationDTO> getFutureReservationsByUtilisateur(Long utilisateurId) {
-        log.debug("Récupération des réservations futures de l'utilisateur ID: {}", utilisateurId);
+    public Page<ReservationDTO> getReservationsByUtilisateur(Long utilisateurId, Pageable pageable) {
+        return getReservationsByUtilisateur(utilisateurId, null, pageable);
+    }
+
+    /**
+     * Récupère les réservations futures d'un utilisateur avec pagination
+     */
+    @Transactional(readOnly = true)
+    public Page<ReservationDTO> getFutureReservationsByUtilisateur(Long utilisateurId, Pageable pageable) {
+        log.debug("Récupération des réservations futures de l'utilisateur ID: {} (page: {})", utilisateurId,
+                pageable.getPageNumber());
 
         LocalDate today = LocalDate.now();
-        return reservationRepository.findFutureReservationsByUtilisateur(utilisateurId, today).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return reservationRepository.findFutureReservationsByUtilisateur(utilisateurId, today, pageable)
+                .map(this::convertToDTO);
     }
 
     /**
