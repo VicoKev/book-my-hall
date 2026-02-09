@@ -6,10 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +68,8 @@ public class SalleService {
         try {
             // Validate file type
             String contentType = imageFile.getContentType();
-            if (!"image/jpeg".equals(contentType) && !"image/png".equals(contentType) && !"image/gif".equals(contentType)) {
+            if (!"image/jpeg".equals(contentType) && !"image/png".equals(contentType)
+                    && !"image/gif".equals(contentType)) {
                 throw new IllegalArgumentException("Seuls les fichiers JPEG, PNG et GIF sont autorisés");
             }
 
@@ -109,48 +109,46 @@ public class SalleService {
     @Transactional(readOnly = true)
     public SalleDTO getSalleById(Long id) {
         log.debug("Récupération de la salle ID: {}", id);
-        
+
         Salle salle = salleRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
+
         return convertToDTO(salle);
     }
 
     /**
-     * Récupère toutes les salles
+     * Récupère toutes les salles avec pagination
      */
     @Transactional(readOnly = true)
-    public List<SalleDTO> getAllSalles() {
-        log.debug("Récupération de toutes les salles");
-        
-        return salleRepository.findAll().stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+    public Page<SalleDTO> getAllSalles(Pageable pageable) {
+        log.debug("Récupération de toutes les salles (page: {})", pageable.getPageNumber());
+
+        return salleRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     /**
-     * Récupère les salles disponibles
+     * Récupère les salles disponibles avec pagination
      */
     @Transactional(readOnly = true)
-    public List<SalleDTO> getSallesDisponibles() {
-        log.debug("Récupération des salles disponibles");
-        
-        return salleRepository.findByDisponible(true).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+    public Page<SalleDTO> getSallesDisponibles(Pageable pageable) {
+        log.debug("Récupération des salles disponibles (page: {})", pageable.getPageNumber());
+
+        return salleRepository.findByDisponible(true, pageable)
+                .map(this::convertToDTO);
     }
 
     /**
-     * Recherche de salles par critères multiples
+     * Recherche de salles par critères multiples avec pagination
      */
     @Transactional(readOnly = true)
-    public List<SalleDTO> searchSalles(String localisation, Integer capaciteMin, BigDecimal prixMax) {
-        log.debug("Recherche de salles - Localisation: {}, CapacitéMin: {}, PrixMax: {}", 
-                  localisation, capaciteMin, prixMax);
-        
-        return salleRepository.searchSalles(localisation, capaciteMin, prixMax, true).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+    public Page<SalleDTO> searchSalles(String localisation, Integer capaciteMin, BigDecimal prixMax,
+            Pageable pageable) {
+        log.debug("Recherche de salles (page: {}) - Localisation: {}, CapacitéMin: {}, PrixMax: {}",
+                pageable.getPageNumber(), localisation, capaciteMin, prixMax);
+
+        return salleRepository.searchSalles(localisation, capaciteMin, prixMax, true, pageable)
+                .map(this::convertToDTO);
     }
 
     /**
@@ -160,10 +158,10 @@ public class SalleService {
         log.info("Mise à jour de la salle ID: {}", id);
 
         Salle salle = salleRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
 
         if (!salle.getNom().equals(salleDTO.getNom()) &&
-            salleRepository.existsByNom(salleDTO.getNom())) {
+                salleRepository.existsByNom(salleDTO.getNom())) {
             throw new IllegalArgumentException("Une salle avec ce nom existe déjà");
         }
 
@@ -214,9 +212,9 @@ public class SalleService {
      */
     public SalleDTO toggleDisponibilite(Long id, Boolean disponible) {
         log.info("Modification de la disponibilité de la salle ID {}: {}", id, disponible);
-        
+
         Salle salle = salleRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
 
         salle.setDisponible(disponible);
         Salle updated = salleRepository.save(salle);
@@ -229,9 +227,9 @@ public class SalleService {
      */
     public void deleteSalle(Long id) {
         log.info("Suppression de la salle ID: {}", id);
-        
+
         Salle salle = salleRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Salle non trouvée avec l'ID: " + id));
 
         if (!salle.getReservations().isEmpty()) {
             throw new IllegalStateException("Impossible de supprimer une salle avec des réservations existantes");
@@ -254,17 +252,17 @@ public class SalleService {
      */
     private SalleDTO convertToDTO(Salle salle) {
         return SalleDTO.builder()
-            .id(salle.getId())
-            .nom(salle.getNom())
-            .capacite(salle.getCapacite())
-            .localisation(salle.getLocalisation())
-            .description(salle.getDescription())
-            .prixParJour(salle.getPrixParJour())
-            .imageFileName(salle.getImageFileName())
-            .equipements(salle.getEquipements())
-            .disponible(salle.getDisponible())
-            .nombreReservations((long) salle.getReservations().size())
-            .build();
+                .id(salle.getId())
+                .nom(salle.getNom())
+                .capacite(salle.getCapacite())
+                .localisation(salle.getLocalisation())
+                .description(salle.getDescription())
+                .prixParJour(salle.getPrixParJour())
+                .imageFileName(salle.getImageFileName())
+                .equipements(salle.getEquipements())
+                .disponible(salle.getDisponible())
+                .nombreReservations((long) salle.getReservations().size())
+                .build();
     }
 
     /**
@@ -272,14 +270,14 @@ public class SalleService {
      */
     private Salle convertToEntity(SalleDTO dto) {
         return Salle.builder()
-            .nom(dto.getNom())
-            .capacite(dto.getCapacite())
-            .localisation(dto.getLocalisation())
-            .description(dto.getDescription())
-            .prixParJour(dto.getPrixParJour())
-            .imageFileName(dto.getImageFileName())
-            .equipements(dto.getEquipements())
-            .disponible(dto.getDisponible())
-            .build();
+                .nom(dto.getNom())
+                .capacite(dto.getCapacite())
+                .localisation(dto.getLocalisation())
+                .description(dto.getDescription())
+                .prixParJour(dto.getPrixParJour())
+                .imageFileName(dto.getImageFileName())
+                .equipements(dto.getEquipements())
+                .disponible(dto.getDisponible())
+                .build();
     }
 }
