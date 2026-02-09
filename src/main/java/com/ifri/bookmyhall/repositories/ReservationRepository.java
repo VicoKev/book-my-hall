@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,16 +30,27 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
        List<Reservation> findBySalle(Salle salle);
 
        /**
-        * Trouve les réservations par statut
+        * Trouve les réservations par statut avec pagination
         */
-       List<Reservation> findByStatut(StatutReservation statut);
+       Page<Reservation> findByStatut(StatutReservation statut, Pageable pageable);
 
        /**
-        * Trouve les réservations d'un utilisateur triées par date décroissante
+        * Trouve les réservations d'un utilisateur triées par date décroissante avec
+        * pagination
         */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "ORDER BY r.dateDebut DESC, r.heureDebut DESC")
-       List<Reservation> findByUtilisateurIdOrderByDateDesc(@Param("utilisateurId") Long utilisateurId);
+       Page<Reservation> findByUtilisateurIdOrderByDateDesc(@Param("utilisateurId") Long utilisateurId,
+                     Pageable pageable);
+
+       /**
+        * Trouve les réservations d'un utilisateur par statut avec pagination
+        */
+       @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId AND r.statut = :statut " +
+                     "ORDER BY r.dateDebut DESC, r.heureDebut DESC")
+       Page<Reservation> findByUtilisateurIdAndStatut(@Param("utilisateurId") Long utilisateurId,
+                     @Param("statut") StatutReservation statut,
+                     Pageable pageable);
 
        /**
         * Trouve les réservations d'une salle pour une date donnée
@@ -86,26 +99,28 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                      @Param("heureFin") LocalTime heureFin);
 
        /**
-        * Trouve les réservations futures d'un utilisateur
+        * Trouve les réservations futures d'un utilisateur avec pagination
         */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "AND ((r.dateFin IS NULL AND r.dateDebut >= :dateActuelle) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateFin >= :dateActuelle)) " +
                      "ORDER BY r.dateDebut ASC, r.heureDebut ASC")
-       List<Reservation> findFutureReservationsByUtilisateur(
+       Page<Reservation> findFutureReservationsByUtilisateur(
                      @Param("utilisateurId") Long utilisateurId,
-                     @Param("dateActuelle") LocalDate dateActuelle);
+                     @Param("dateActuelle") LocalDate dateActuelle,
+                     Pageable pageable);
 
        /**
-        * Trouve les réservations passées d'un utilisateur
+        * Trouve les réservations passées d'un utilisateur avec pagination
         */
        @Query("SELECT r FROM Reservation r WHERE r.utilisateur.id = :utilisateurId " +
                      "AND ((r.dateFin IS NULL AND r.dateDebut < :dateActuelle) OR " +
                      "(r.dateFin IS NOT NULL AND r.dateFin < :dateActuelle)) " +
                      "ORDER BY r.dateDebut DESC, r.heureDebut DESC")
-       List<Reservation> findPastReservationsByUtilisateur(
+       Page<Reservation> findPastReservationsByUtilisateur(
                      @Param("utilisateurId") Long utilisateurId,
-                     @Param("dateActuelle") LocalDate dateActuelle);
+                     @Param("dateActuelle") LocalDate dateActuelle,
+                     Pageable pageable);
 
        /**
         * Trouve toutes les réservations entre deux dates
