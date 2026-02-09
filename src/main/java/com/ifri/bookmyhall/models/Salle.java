@@ -66,7 +66,7 @@ public class Salle {
     private BigDecimal prixParJour;
 
     @Column(length = 255)
-    private String imageUrl;
+    private String imageFileName;
 
     @Column(length = 500)
     private String equipements;
