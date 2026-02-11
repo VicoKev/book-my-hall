@@ -1,9 +1,13 @@
 package com.ifri.bookmyhall.controllers;
 
 import java.math.BigDecimal;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +40,11 @@ public class SalleController {
             @RequestParam(defaultValue = "9") int size,
             Model model) {
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/user/salles";
+        }
+
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<SalleDTO> sallesPage;
@@ -66,6 +75,10 @@ public class SalleController {
     /** Affiche les détails d'une salle spécifique. */
     @GetMapping("/{id}")
     public String detailsSalle(@PathVariable Long id, Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/user/salles/" + id;
+        }
         try {
             model.addAttribute("salle", salleService.getSalleById(id));
         } catch (Exception e) {
@@ -79,6 +92,6 @@ public class SalleController {
     /** Redirige vers le formulaire de réservation pour une salle. */
     @GetMapping("/{id}/reserver")
     public String reserverSalle(@PathVariable Long id) {
-        return "redirect:/reservations/new?salleId=" + id;
+        return "redirect:/user/reservations/new?salleId=" + id;
     }
 }
