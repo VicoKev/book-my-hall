@@ -24,7 +24,7 @@
         <div class="card bg-success text-white">
             <div class="card-body">
                 <h5 class="card-title">
-                    <i class="bi bi-building"></i> Salles Disponibles
+                    <i class="bi bi-building-fill"></i> Salles Disponibles
                 </h5>
                 <h2 class="mb-0">${nombreSalles}</h2>
             </div>
