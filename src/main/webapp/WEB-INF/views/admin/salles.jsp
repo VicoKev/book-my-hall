@@ -7,7 +7,7 @@
 <!-- Page Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2><i class="bi bi-building"></i> Gestion des Salles</h2>
+        <h2><i class="bi bi-building-fill"></i> Gestion des Salles</h2>
         <p class="text-muted mb-0">Total: ${sallesPage.totalElements} salle(s)</p>
     </div>
     <div>
@@ -63,7 +63,7 @@
                             <td>
                                 <div class="btn-group btn-group-sm gap-1">
                                     <!-- Voir -->
-                                    <a href="${pageContext.request.contextPath}/salles/${salle.id}" 
+                                    <a href="${pageContext.request.contextPath}/admin/salles/${salle.id}" 
                                        class="btn btn-outline-info" title="Voir">
                                         <i class="bi bi-eye"></i>
                                     </a>
