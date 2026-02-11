@@ -148,7 +148,7 @@
                                         <i class="bi bi-eye"></i> Voir détails
                                     </a>
                                     <c:if test="${salle.disponible}">
-                                        <a href="${pageContext.request.contextPath}/salles/${salle.id}/reserver" 
+                                        <a href="${pageContext.request.contextPath}/user/reservations/new?salleId=${salle.id}" 
                                         class="btn btn-primary">
                                             <i class="bi bi-calendar-check"></i> Réserver
                                         </a>
