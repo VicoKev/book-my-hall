@@ -8,7 +8,7 @@
         <div class="card">
             <div class="card-header bg-white">
                 <h4 class="mb-0">
-                    <i class="bi bi-building"></i> ${salleDTO.id != null ? 'Modifier' : 'Ajouter'} une Salle
+                    <i class="bi bi-building-fill"></i> ${salleDTO.id != null ? 'Modifier' : 'Ajouter'} une Salle
                 </h4>
             </div>
             <div class="card-body">
