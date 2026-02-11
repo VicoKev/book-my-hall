@@ -33,7 +33,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.INCLUDE).permitAll()
-                        .requestMatchers("/", "/register", "/login", "/salles", "/salles/**", "/css/**", "/js/**",
+                        .requestMatchers("/", "/register", "/login", "/salles", "/salles/**", "/contact", "/css/**",
+                                "/js/**",
                                 "/images/**", "/error", "/access-denied")
                         .permitAll()
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
