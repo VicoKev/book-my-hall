@@ -38,9 +38,9 @@
     <div class="col-md-4">
         <div class="card text-center h-100 border-warning">
             <div class="card-body">
-                <i class="bi bi-building text-warning" style="font-size: 3rem;"></i>
+                <i class="bi bi-building-fill text-warning" style="font-size: 3rem;"></i>
                 <h3 class="mt-3 mb-0">
-                    <a href="${pageContext.request.contextPath}/salles" class="text-decoration-none">
+                    <a href="${pageContext.request.contextPath}/user/salles" class="text-decoration-none">
                         Voir les salles
                     </a>
                 </h3>
@@ -58,7 +58,7 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-3">
-                <a href="${pageContext.request.contextPath}/salles" class="btn btn-outline-primary w-100">
+                <a href="${pageContext.request.contextPath}/user/salles" class="btn btn-outline-primary w-100">
                     <i class="bi bi-search"></i><br>Rechercher une salle
                 </a>
             </div>
@@ -92,7 +92,7 @@
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-calendar-x" style="font-size: 4rem;"></i>
                     <p class="mt-3 mb-0">Aucune réservation à venir</p>
-                    <a href="${pageContext.request.contextPath}/salles" class="btn btn-primary mt-3">
+                    <a href="${pageContext.request.contextPath}/user/salles" class="btn btn-primary mt-3">
                         <i class="bi bi-plus-circle"></i> Réserver une salle
                     </a>
                 </div>
@@ -129,7 +129,7 @@
                                         ${reservation.heureDebut} - ${reservation.heureFin}
                                     </td>
                                     <td>
-                                        <i class="bi bi-building"></i> 
+                                        <i class="bi bi-building-fill"></i> 
                                         ${reservation.salleNom}
                                     </td>
                                     <td>${reservation.typeEvenement}</td>
