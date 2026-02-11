@@ -366,4 +366,47 @@ public class AdminController {
         }
         return "admin/salle-details";
     }
+
+    /** Affiche les détails d'une réservation pour l'admin. */
+    @GetMapping("/reservations/{id}")
+    public String detailsReservation(@PathVariable Long id, Model model) {
+        try {
+            model.addAttribute("reservation", reservationService.getReservationById(id));
+            model.addAttribute("currentUser", utilisateurService.getUtilisateurByUsername(
+                    org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                            .getName()));
+        } catch (Exception e) {
+            log.error("Erreur chargement réservation {} pour admin", id, e);
+            return "redirect:/admin/reservations";
+        }
+        return "admin/reservation-details";
+    }
+
+    /** Permet à l'admin de confirmer une réservation. */
+    @PostMapping("/reservations/{id}/confirmer")
+    public String confirmerReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            reservationService.confirmerReservation(id);
+            log.info("Réservation {} confirmée par admin", id);
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation confirmée avec succès");
+        } catch (Exception e) {
+            log.error("Erreur confirmation réservation {} par admin", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Erreur lors de la confirmation");
+        }
+        return "redirect:/admin/reservations/" + id;
+    }
+
+    /** Permet à l'admin d'annuler une réservation. */
+    @PostMapping("/reservations/{id}/annuler")
+    public String annulerReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            reservationService.annulerReservation(id);
+            log.info("Réservation {} annulée par admin", id);
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation annulée");
+        } catch (Exception e) {
+            log.error("Erreur annulation réservation {} par admin", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/admin/reservations/" + id;
+    }
 }
