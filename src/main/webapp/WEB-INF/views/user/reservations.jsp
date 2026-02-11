@@ -7,7 +7,7 @@
 <div class="card">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Mes Réservations</h5>
-        <a href="${pageContext.request.contextPath}/salles" class="btn btn-light btn-sm">
+        <a href="${pageContext.request.contextPath}/user/salles" class="btn btn-light btn-sm">
             <i class="bi bi-plus-circle"></i> Nouvelle Réservation
         </a>
     </div>
@@ -133,12 +133,12 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm gap-1">
-                                            <a href="${pageContext.request.contextPath}/reservations/${reservation.id}" 
+                                            <a href="${pageContext.request.contextPath}/user/reservations/${reservation.id}" 
                                                class="btn btn-outline-primary" title="Voir détails">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                             <c:if test="${reservation.statut == 'PENDING' || reservation.statut == 'CONFIRMED'}">
-                                                <form action="${pageContext.request.contextPath}/reservations/${reservation.id}/annuler" 
+                                                <form action="${pageContext.request.contextPath}/user/reservations/${reservation.id}/annuler" 
                                                       method="post" style="display:inline;"
                                                       onsubmit="return confirm('Êtes-vous sûr de vouloir annuler cette réservation ?');">
                                                     <button type="submit" class="btn btn-outline-danger" title="Annuler">
