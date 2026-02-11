@@ -67,7 +67,7 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4">
         <div class="container">
             <a class="navbar-brand" href="${pageContext.request.contextPath}/">
-                <i class="bi bi-building"></i> BookMyHall
+                <i class="bi bi-building-fill"></i> BookMyHall
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
