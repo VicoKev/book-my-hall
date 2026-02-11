@@ -128,6 +128,12 @@ public class AuthController {
         }
     }
 
+    /** Affiche la page de contact. */
+    @GetMapping("/contact")
+    public String contact() {
+        return "contact";
+    }
+
     /** Affiche la page d'accès refusé. */
     @GetMapping("/access-denied")
     public String accessDenied() {
