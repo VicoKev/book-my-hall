@@ -135,7 +135,7 @@
                 <div class="d-grid gap-2">
                     <c:choose>
                         <c:when test="${salle.disponible}">
-                            <a href="${pageContext.request.contextPath}/salles/${salle.id}/reserver" 
+                            <a href="${pageContext.request.contextPath}/user/reservations/new?salleId=${salle.id}" 
                                class="btn btn-primary btn-lg">
                                 <i class="bi bi-calendar-check"></i> Réserver cette salle
                             </a>
