@@ -31,7 +31,7 @@
     <div class="col-md-3">
         <div class="card text-center h-100 border-success">
             <div class="card-body">
-                <i class="bi bi-building text-success" style="font-size: 3rem;"></i>
+                <i class="bi bi-building-fill text-success" style="font-size: 3rem;"></i>
                 <h3 class="mt-3 mb-0">${totalSalles}</h3>
                 <p class="text-muted mb-0">Salles totales</p>
                 <a href="${pageContext.request.contextPath}/admin/salles" class="btn btn-sm btn-outline-success mt-2">
