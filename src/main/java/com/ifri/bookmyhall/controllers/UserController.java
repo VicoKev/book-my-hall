@@ -1,19 +1,25 @@
 package com.ifri.bookmyhall.controllers;
 
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ifri.bookmyhall.dto.ReservationDTO;
+import com.ifri.bookmyhall.dto.SalleDTO;
 import com.ifri.bookmyhall.dto.UtilisateurDTO;
 import com.ifri.bookmyhall.models.Reservation.StatutReservation;
 import com.ifri.bookmyhall.services.ReservationService;
+import com.ifri.bookmyhall.services.SalleService;
 import com.ifri.bookmyhall.services.UtilisateurService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +34,7 @@ public class UserController {
 
     private final UtilisateurService utilisateurService;
     private final ReservationService reservationService;
+    private final SalleService salleService;
 
     /** Récupère le nom d'utilisateur de la session courante. */
     private String getCurrentUsername() {
@@ -111,5 +118,59 @@ public class UserController {
             log.error("Erreur reservations utilisateur {}", username, e);
         }
         return "user/reservations";
+    }
+
+    /**
+     * Liste les salles pour l'utilisateur connecté.
+     */
+    @GetMapping("/salles")
+    public String listSalles(
+            @RequestParam(required = false) String localisation,
+            @RequestParam(required = false) Integer capaciteMin,
+            @RequestParam(required = false) BigDecimal prixMax,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            Model model) {
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<SalleDTO> sallesPage;
+
+            if (localisation != null || capaciteMin != null || prixMax != null) {
+                sallesPage = salleService.searchSalles(localisation, capaciteMin, prixMax, pageable);
+                model.addAttribute("hasFilters", true);
+            } else {
+                sallesPage = salleService.getSallesDisponibles(pageable);
+                model.addAttribute("hasFilters", false);
+            }
+
+            model.addAttribute("salles", sallesPage.getContent());
+            model.addAttribute("sallesPage", sallesPage);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", sallesPage.getTotalPages());
+            model.addAttribute("localisation", localisation);
+            model.addAttribute("capaciteMin", capaciteMin);
+            model.addAttribute("prixMax", prixMax);
+
+        } catch (Exception e) {
+            log.error("Erreur chargement salles pour utilisateur", e);
+            model.addAttribute("errorMessage", "Erreur lors du chargement");
+        }
+        return "user/salle-list";
+    }
+
+    /**
+     * Affiche les détails d'une salle pour l'utilisateur connecté.
+     */
+    @GetMapping("/salles/{id}")
+    public String detailsSalle(@PathVariable Long id, Model model) {
+        try {
+            model.addAttribute("salle", salleService.getSalleById(id));
+        } catch (Exception e) {
+            log.error("Erreur chargement salle {} pour utilisateur", id, e);
+            model.addAttribute("errorMessage", "Salle non trouvée");
+            return "redirect:/user/salles";
+        }
+        return "user/salle-details";
     }
 }
