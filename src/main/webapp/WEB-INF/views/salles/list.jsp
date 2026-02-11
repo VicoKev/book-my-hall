@@ -8,7 +8,7 @@
 <div class="row mb-4">
     <div class="col-md-8">
         <h2 class="mb-0">
-            <i class="bi bi-building"></i> Nos Salles de Réception
+            <i class="bi bi-building-fill"></i> Nos Salles de Réception
         </h2>
         <p class="text-muted">Trouvez la salle parfaite pour votre événement</p>
     </div>
@@ -82,7 +82,7 @@
     <c:choose>
         <c:when test="${empty salles}">
             <div class="text-center py-5">
-                <i class="bi bi-building-x text-muted" style="font-size: 5rem;"></i>
+                <i class="bi bi-building-fill-x text-muted" style="font-size: 5rem;"></i>
                 <h3 class="mt-3">Aucune salle trouvée</h3>
                 <p class="text-muted">Essayez de modifier vos critères de recherche</p>
                 <a href="${pageContext.request.contextPath}/salles" class="btn btn-primary mt-3">
@@ -104,7 +104,7 @@
                                             class="img-fluid" style="max-height: 200px;">
                                     </c:when>
                                     <c:otherwise>
-                                        <i class="bi bi-building text-muted" style="font-size: 4rem;"></i>
+                                        <i class="bi bi-building-fill text-muted" style="font-size: 4rem;"></i>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
@@ -147,12 +147,6 @@
                                     class="btn btn-outline-primary">
                                         <i class="bi bi-eye"></i> Voir détails
                                     </a>
-                                    <c:if test="${salle.disponible}">
-                                        <a href="${pageContext.request.contextPath}/salles/${salle.id}/reserver" 
-                                        class="btn btn-primary">
-                                            <i class="bi bi-calendar-check"></i> Réserver
-                                        </a>
-                                    </c:if>
                                 </div>
                             </div>
                         </div>
