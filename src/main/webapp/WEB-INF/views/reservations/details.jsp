@@ -142,7 +142,7 @@
         <!-- Informations sur la salle -->
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="bi bi-building"></i> Informations sur la Salle</h5>
+                <h5 class="mb-0"><i class="bi bi-building-fill"></i> Informations sur la Salle</h5>
             </div>
             <div class="card-body">
                 <h5>${reservation.salleNom}</h5>
