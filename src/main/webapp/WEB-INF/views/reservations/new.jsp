@@ -155,7 +155,7 @@
         <!-- Informations sur la salle -->
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
-                <h6 class="mb-0"><i class="bi bi-building"></i> Récapitulatif</h6>
+                <h6 class="mb-0"><i class="bi bi-building-fill"></i> Récapitulatif</h6>
             </div>
             <div class="card-body">
                 <h5 class="card-title">${salle.nom}</h5>
