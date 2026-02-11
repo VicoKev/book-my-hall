@@ -24,7 +24,7 @@
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-building"></i> 
+                    <i class="bi bi-building-fill"></i> 
                     ${isEdit ? 'Éditer la Salle' : 'Nouvelle Salle'}
                 </h5>
             </div>
