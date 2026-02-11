@@ -79,32 +79,6 @@
                                 </c:choose>
                             </td>
                         </tr>
-                        <tr>
-                            <th><i class="bi bi-shield"></i> Rôle :</th>
-                            <td>
-                                <c:choose>
-                                    <c:when test="${user.role == 'ADMIN'}">
-                                        <span class="badge bg-danger">Administrateur</span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="badge bg-primary">Utilisateur</span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th><i class="bi bi-check-circle"></i> Statut :</th>
-                            <td>
-                                <c:choose>
-                                    <c:when test="${user.actif}">
-                                        <span class="badge bg-success">Actif</span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="badge bg-danger">Inactif</span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
                 
