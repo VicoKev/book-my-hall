@@ -28,7 +28,7 @@
                     </c:when>
                     <c:otherwise>
                         <div class="d-flex align-items-center justify-content-center h-100">
-                            <i class="bi bi-building text-muted" style="font-size: 8rem;"></i>
+                            <i class="bi bi-building-fill text-muted" style="font-size: 8rem;"></i>
                         </div>
                     </c:otherwise>
                 </c:choose>
@@ -133,20 +133,6 @@
                 <hr>
                 
                 <div class="d-grid gap-2">
-                    <c:choose>
-                        <c:when test="${salle.disponible}">
-                            <a href="${pageContext.request.contextPath}/salles/${salle.id}/reserver" 
-                               class="btn btn-primary btn-lg">
-                                <i class="bi bi-calendar-check"></i> Réserver cette salle
-                            </a>
-                        </c:when>
-                        <c:otherwise>
-                            <button class="btn btn-secondary btn-lg" disabled>
-                                <i class="bi bi-x-circle"></i> Salle indisponible
-                            </button>
-                        </c:otherwise>
-                    </c:choose>
-                    
                     <a href="${pageContext.request.contextPath}/salles" 
                        class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Retour à la liste
