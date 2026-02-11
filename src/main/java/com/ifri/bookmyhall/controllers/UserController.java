@@ -1,6 +1,7 @@
 package com.ifri.bookmyhall.controllers;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -9,10 +10,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ifri.bookmyhall.dto.ReservationDTO;
 import com.ifri.bookmyhall.dto.SalleDTO;
@@ -22,6 +27,7 @@ import com.ifri.bookmyhall.services.ReservationService;
 import com.ifri.bookmyhall.services.SalleService;
 import com.ifri.bookmyhall.services.UtilisateurService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -172,5 +178,113 @@ public class UserController {
             return "redirect:/user/salles";
         }
         return "user/salle-details";
+    }
+
+    /** Affiche le formulaire de nouvelle réservation pour l'utilisateur. */
+    @GetMapping("/reservations/new")
+    public String showReservationForm(@RequestParam Long salleId, Model model) {
+        try {
+            SalleDTO salle = salleService.getSalleById(salleId);
+            if (!salle.getDisponible()) {
+                model.addAttribute("errorMessage", "Salle indisponible");
+                return "redirect:/user/salles/" + salleId;
+            }
+
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(getCurrentUsername());
+            model.addAttribute("reservationDTO", ReservationDTO.builder()
+                    .salleId(salleId).utilisateurId(user.getId())
+                    .dateDebut(LocalDate.now().plusDays(1)).build());
+            model.addAttribute("salle", salle);
+            model.addAttribute("user", user);
+
+        } catch (Exception e) {
+            log.error("Erreur chargement formulaire réservation pour utilisateur", e);
+            return "redirect:/user/salles";
+        }
+        return "user/reservation-form";
+    }
+
+    /** Traite la soumission d'une nouvelle réservation par l'utilisateur. */
+    @PostMapping("/reservations/create")
+    public String createReservation(@Valid @ModelAttribute("reservationDTO") ReservationDTO dto,
+            BindingResult result, Model model, RedirectAttributes redirectAttributes) {
+
+        if (result.hasErrors()) {
+            try {
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
+                model.addAttribute("user", utilisateurService.getUtilisateurByUsername(getCurrentUsername()));
+            } catch (Exception e) {
+            }
+            return "user/reservation-form";
+        }
+
+        if (!dto.hasValidTimeRange()) {
+            model.addAttribute("errorMessage", "Plage horaire invalide");
+            try {
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
+                model.addAttribute("user", utilisateurService.getUtilisateurByUsername(getCurrentUsername()));
+            } catch (Exception e) {
+            }
+            return "user/reservation-form";
+        }
+
+        try {
+            ReservationDTO created = reservationService.createReservation(dto);
+            log.info("Réservation utilisateur créée : {}", created.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Réservation créée avec succès !");
+            return "redirect:/user/reservations/" + created.getId();
+        } catch (Exception e) {
+            log.error("Erreur création réservation utilisateur", e);
+            model.addAttribute("errorMessage", e.getMessage());
+            try {
+                model.addAttribute("salle", salleService.getSalleById(dto.getSalleId()));
+                model.addAttribute("user", utilisateurService.getUtilisateurByUsername(getCurrentUsername()));
+            } catch (Exception ex) {
+            }
+            return "user/reservation-form";
+        }
+    }
+
+    /** Affiche les détails d'une réservation pour l'utilisateur. */
+    @GetMapping("/reservations/{id}")
+    public String detailsReservation(@PathVariable Long id, Model model) {
+        String username = getCurrentUsername();
+        try {
+            ReservationDTO res = reservationService.getReservationById(id);
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
+
+            if (!res.getUtilisateurId().equals(user.getId())) {
+                log.warn("Tentative d'accès non autorisé à la réservation {} par {}", id, username);
+                return "redirect:/user/reservations";
+            }
+            model.addAttribute("reservation", res);
+            model.addAttribute("currentUser", user);
+        } catch (Exception e) {
+            log.error("Erreur chargement détails réservation {} pour utilisateur", id, e);
+            return "redirect:/user/reservations";
+        }
+        return "user/reservation-details";
+    }
+
+    /** Permet à l'utilisateur d'annuler une de ses réservations. */
+    @PostMapping("/reservations/{id}/annuler")
+    public String annulerReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        String username = getCurrentUsername();
+        try {
+            ReservationDTO res = reservationService.getReservationById(id);
+            UtilisateurDTO user = utilisateurService.getUtilisateurByUsername(username);
+
+            if (!res.getUtilisateurId().equals(user.getId())) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Action non autorisée");
+                return "redirect:/user/reservations";
+            }
+            reservationService.annulerReservation(id);
+            log.info("Réservation {} annulée par l'utilisateur {}", id, username);
+            redirectAttributes.addFlashAttribute("successMessage", "Votre réservation a été annulée");
+        } catch (Exception e) {
+            log.error("Erreur annulation réservation {} par utilisateur", id, e);
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/user/reservations/" + id;
     }
 }
