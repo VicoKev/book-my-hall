@@ -97,14 +97,14 @@
                             <td>
                                 <div class="btn-group btn-group-sm gap-1">
                                     <!-- Voir détails -->
-                                    <a href="${pageContext.request.contextPath}/reservations/${reservation.id}" 
+                                    <a href="${pageContext.request.contextPath}/admin/reservations/${reservation.id}" 
                                        class="btn btn-outline-primary" title="Details">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     
                                     <!-- Confirmer si PENDING -->
                                     <c:if test="${reservation.statut == 'PENDING'}">
-                                        <form action="${pageContext.request.contextPath}/reservations/${reservation.id}/confirmer" 
+                                        <form action="${pageContext.request.contextPath}/admin/reservations/${reservation.id}/confirmer" 
                                               method="post" style="display:inline;">
                                             <button type="submit" class="btn btn-outline-success" 
                                                     title="Confirmer">
@@ -115,7 +115,7 @@
                                     
                                     <!-- Annuler si PENDING ou CONFIRMED -->
                                     <c:if test="${reservation.statut == 'PENDING' || reservation.statut == 'CONFIRMED'}">
-                                        <form action="${pageContext.request.contextPath}/reservations/${reservation.id}/annuler" 
+                                        <form action="${pageContext.request.contextPath}/admin/reservations/${reservation.id}/annuler" 
                                               method="post" style="display:inline;"
                                               onsubmit="return confirm('Annuler cette réservation ?');">
                                             <button type="submit" class="btn btn-outline-danger" 
