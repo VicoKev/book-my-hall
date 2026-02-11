@@ -16,14 +16,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ifri.bookmyhall.dto.ReservationDTO;
 import com.ifri.bookmyhall.dto.SalleDTO;
 import com.ifri.bookmyhall.dto.UtilisateurDTO;
-import com.ifri.bookmyhall.models.Role;
 import com.ifri.bookmyhall.models.Reservation.StatutReservation;
+import com.ifri.bookmyhall.models.Role;
 import com.ifri.bookmyhall.services.ReservationService;
 import com.ifri.bookmyhall.services.SalleService;
 import com.ifri.bookmyhall.services.UtilisateurService;
@@ -352,5 +352,18 @@ public class AdminController {
             log.error("Erreur listing réservations", e);
         }
         return "admin/reservations";
+    }
+
+    /** Affiche les détails d'une salle pour l'administration. */
+    @GetMapping("/salles/{id}")
+    public String detailsSalle(@PathVariable Long id, Model model) {
+        try {
+            model.addAttribute("salle", salleService.getSalleById(id));
+        } catch (Exception e) {
+            log.error("Erreur chargement salle {} pour admin", id, e);
+            model.addAttribute("errorMessage", "Salle non trouvée");
+            return "redirect:/admin/salles";
+        }
+        return "admin/salle-details";
     }
 }
