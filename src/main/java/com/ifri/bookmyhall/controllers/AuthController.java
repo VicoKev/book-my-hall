@@ -40,11 +40,18 @@ public class AuthController {
         return auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken);
     }
 
+    /** Vérifie si l'utilisateur courant est un administrateur. */
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN"));
+    }
+
     /** Détermine l'URL de redirection après une action d'authentification. */
     private String getBackUrl(HttpServletRequest request) {
         String referer = request.getHeader("Referer");
         if (referer == null || referer.isEmpty())
-            return "redirect:/dashboard";
+            return "redirect:" + (isAdmin() ? "/admin/dashboard" : "/user/dashboard");
 
         try {
             java.net.URI uri = new java.net.URI(referer);
@@ -57,10 +64,10 @@ public class AuthController {
             }
 
             if (path.equals("/") || path.equals("/login") || path.equals("/register"))
-                return "redirect:/dashboard";
+                return "redirect:" + (isAdmin() ? "/admin/dashboard" : "/user/dashboard");
             return "redirect:" + path;
         } catch (URISyntaxException e) {
-            return "redirect:/dashboard";
+            return "redirect:" + (isAdmin() ? "/admin/dashboard" : "/user/dashboard");
         }
     }
 
