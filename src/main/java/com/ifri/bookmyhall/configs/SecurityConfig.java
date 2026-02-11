@@ -37,7 +37,7 @@ public class SecurityConfig {
                                 "/images/**", "/error", "/access-denied")
                         .permitAll()
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                        .requestMatchers("/user/**", "/reservations/**").hasAnyAuthority("USER", "ADMIN")
+                        .requestMatchers("/user/**").hasAnyAuthority("USER", "ADMIN")
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login").loginProcessingUrl("/login")
