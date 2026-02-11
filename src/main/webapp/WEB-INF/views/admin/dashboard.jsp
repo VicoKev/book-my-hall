@@ -150,7 +150,7 @@
                                         </c:choose>
                                     </td>
                                     <td>
-                                        <a href="${pageContext.request.contextPath}/reservations/${reservation.id}" 
+                                        <a href="${pageContext.request.contextPath}/admin/reservations/${reservation.id}" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i>
                                         </a>
